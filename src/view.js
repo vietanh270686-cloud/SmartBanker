@@ -251,6 +251,10 @@ function lobby() {
       <div class="lobby-left">
         <div class="eyebrow">Cuộc thi kiến thức</div>
         <div class="brand-title hero">Smart<span>Banker</span></div>
+        <div class="lobby-sub">
+          <span class="ls-branch">Tràng Tiền – Hà Nội 2026</span>
+          <span class="ls-date">Ngày thi 03/10/2026</span>
+        </div>
         <div class="lobby-steps">
           <div><b>1</b> Quét mã QR bằng điện thoại</div>
           <div><b>2</b> Nhập mã cán bộ và mật khẩu</div>
