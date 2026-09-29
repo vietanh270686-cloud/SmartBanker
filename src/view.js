@@ -259,7 +259,8 @@ function lobby() {
         <div class="lobby-online" id="lobby-online">${lobbyOnline()}</div>
       </div>
       <div class="lobby-right">
-        <div class="qr-card"><img src="${qrDataUrl}" alt="QR"><div class="qr-url">${esc(BASE_URL.replace(/^https?:\/\//, ''))}</div></div>
+        <div class="qr-card"><img src="${qrDataUrl}" alt="QR"></div>
+        <div class="qr-caption">Quét mã để vào thi</div>
       </div>
     </div>`;
 }

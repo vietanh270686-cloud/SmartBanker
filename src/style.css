@@ -255,10 +255,10 @@ body.mode-view {
 .lt-num { font-size: 4.8vw; font-weight: 900; line-height: 1.1; }
 .lt-num small { font-size: 2vw; opacity: 0.6; }
 .lt-lbl { font-size: 1.1vw; opacity: 0.7; }
-.lobby-right { display: flex; justify-content: center; }
-.qr-card { background: #fff; padding: 2vw; border-radius: 2vw; text-align: center; box-shadow: 0 2vh 6vh rgba(0,0,0,.35); }
-.qr-card img { width: min(30vw, 58vh); display: block; }
-.qr-url { color: var(--teal-700); font-weight: 800; font-size: 1.3vw; margin-top: 1vh; }
+.lobby-right { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.qr-card { background: #fff; padding: 1.4vw; border-radius: 1.6vw; line-height: 0; box-shadow: 0 0 0 0.4vw rgba(251,186,32,.9), 0 2vh 6vh rgba(0,0,0,.35); }
+.qr-card img { width: min(30vw, 60vh); display: block; image-rendering: pixelated; }
+.qr-caption { margin-top: 3vh; font-size: 1.7vw; font-weight: 800; letter-spacing: 0.3vw; text-transform: uppercase; color: var(--gold); }
 
 /* Part intro / end */
 .v-part { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
