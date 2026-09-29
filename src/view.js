@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import {
   rpc, errText, esc, fmtSec, fmtScore, LETTERS, TEAM_CLASS, logoHtml, BASE_URL, toast,
-  game, onState, startStateSync, optionsTiming, top10Auto, serverNow,
+  game, onState, startStateSync, optionsTiming, top10Auto, serverNow, loadParts, partTopic,
 } from './lib.js';
 import * as snd from './sound.js';
 import { exportExcel } from './export.js';
@@ -113,6 +113,7 @@ async function start() {
   });
   root.querySelector('#xls').addEventListener('click', () => exportExcel(secret));
 
+  await loadParts();
   startStateSync({ pollMs: 3000 });
   onState(() => render());
   pollOnline();
@@ -281,6 +282,7 @@ function partIntro(s, p) {
     <div class="v-part">
       <div class="part-num">PHẦN ${s.part_no}</div>
       <div class="part-name">${esc(p.part_name)}</div>
+      ${partTopic(s.part_no) ? `<div class="part-topic">Chủ đề: ${esc(partTopic(s.part_no))}</div>` : ''}
       <div class="part-meta">${p.q_count} câu hỏi</div>
       ${hasScore ? `<div class="part-totals"><div class="sec-title">Điểm các đội hiện tại</div>${totalsBars(p.totals)}</div>` : ''}
     </div>`;
@@ -349,7 +351,7 @@ function partEnd(s, p) {
   return `
     <div class="v-part">
       <div class="part-num sm">KẾT THÚC PHẦN ${s.part_no}</div>
-      <div class="part-name">${esc(p.part_name)}</div>
+      <div class="part-name md">${esc(p.part_name)}</div>
       <div class="part-totals wide"><div class="sec-title">Bảng điểm đồng đội</div>${totalsBars(p.totals)}</div>
       <div class="part-meta">${p.next_part ? `Tiếp theo: Phần ${p.next_part} — ${esc(p.next_part_name)}` : 'Chuẩn bị công bố kết quả chung cuộc!'}</div>
     </div>`;

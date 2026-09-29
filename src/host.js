@@ -231,7 +231,8 @@ function controlTab() {
         { confirm: `Bắt đầu <b>Phần ${firstPart()}</b>?` });
       break;
     case 'part_intro':
-      status += `<div class="h-sub">Phần ${s.part_no}: ${esc(p.part_name)}</div>`;
+      status += `<div class="h-sub">Phần ${s.part_no}: ${esc(p.part_name)}</div>`
+        + (overview?.parts.find((x) => x.part_no === s.part_no)?.topic ? `<div class="h-topic">${esc(overview.parts.find((x) => x.part_no === s.part_no).topic)}</div>` : '');
       main = btn(`▶ Bắt đầu câu ${p.first_q}`, 'start_question', p.first_q);
       break;
     case 'question':
@@ -330,7 +331,7 @@ function questionsTab() {
   const s = game.state;
   return overview.parts.map((pt) => `
     <div class="card">
-      <div class="h-part-title">Phần ${pt.part_no}: ${esc(pt.name)}</div>
+      <div class="h-part-title">Phần ${pt.part_no}: ${esc(pt.name)}${pt.topic ? `<small class="h-topic">${esc(pt.topic)}</small>` : ''}</div>
       ${overview.questions.filter((x) => x.part_no === pt.part_no).map((x) => `
         <div class="h-q-row ${x.done ? 'done' : ''} ${s?.q_no === x.q_no ? 'current' : ''}">
           <span class="h-q-no">${x.q_no}</span>

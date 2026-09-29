@@ -106,6 +106,15 @@ export function notifyVersion(v) {
   if (!game.state || v > game.state.version) fetchState();
 }
 
+// ---------------- Phần thi (tên + chủ đề) ----------------
+export const parts = {};
+export async function loadParts() {
+  const { data } = await supabase.from('parts').select('*').order('part_no');
+  (data || []).forEach((p) => (parts[p.part_no] = p));
+  return parts;
+}
+export const partTopic = (no) => parts[no]?.topic || '';
+
 // ---------------- Tính trạng thái con theo thời gian ----------------
 // Pha 'options': đang hiện dần đáp án -> đang đếm ngược -> hết giờ
 export function optionsTiming(payload, now = serverNow()) {

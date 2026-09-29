@@ -1,6 +1,6 @@
 import {
   rpc, errText, esc, fmtSec, fmtScore, LETTERS, TEAM_CLASS, logoHtml, deviceId, confirmBox, toast,
-  game, onState, startStateSync, notifyVersion, optionsTiming,
+  game, onState, startStateSync, notifyVersion, optionsTiming, loadParts, partTopic,
 } from './lib.js';
 
 const KEY = 'sb_player';
@@ -66,6 +66,7 @@ function startGame() {
   lastKey = '';
   if (!started) {
     started = true;
+    loadParts().then(() => { lastKey = ''; render(); });
     startStateSync({ pollMs: 0 });
     onState(() => { refreshSummaryIfNeeded(); render(); });
     setInterval(tick, 100);
@@ -224,6 +225,7 @@ function body(s) {
       return `<div class="p-wait">
         <div class="part-tag">Phần ${s.part_no}</div>
         <h2>${esc(p.part_name)}</h2>
+        ${partTopic(s.part_no) ? `<p class="p-topic">Chủ đề: ${esc(partTopic(s.part_no))}</p>` : ''}
         <p>${p.q_count} câu hỏi · Chuẩn bị sẵn sàng!</p>
       </div>`;
     case 'question':
