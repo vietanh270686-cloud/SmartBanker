@@ -68,7 +68,7 @@ async function start() {
   root.innerHTML = `
     <div class="h-wrap">
       <header class="h-top">
-        ${logoHtml('logo-sm')}
+        ${logoHtml('logo-sm', true)}
         <div class="h-title">SmartBanker <small>MC</small></div>
         <div class="h-online" id="h-online"></div>
       </header>

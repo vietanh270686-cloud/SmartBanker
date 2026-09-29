@@ -47,7 +47,7 @@ input { font-family: inherit; }
 
 /* ---------- Brand ---------- */
 .logo { display: block; height: 36px; width: auto; object-fit: contain; }
-.logo-sm { height: 28px; }
+.logo-sm { height: 34px; }
 .logo-md { height: 44px; }
 .logo-lg { height: 72px; }
 .logo-fallback { font-weight: 900; color: var(--teal); letter-spacing: 1px; font-size: 22px; }
@@ -172,7 +172,6 @@ body.offline .offline-bar { display: block; }
 /* =================== HOST (điện thoại MC) =================== */
 .h-wrap { max-width: 560px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
 .h-top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--teal); color: #fff; position: sticky; top: 0; z-index: 5; }
-.h-top .logo { background: #fff; padding: 3px 6px; border-radius: 6px; }
 .h-top .logo-fallback { color: #fff; }
 .h-title { font-weight: 800; flex: 1; }
 .h-title small { background: var(--gold); color: var(--teal-900); padding: 2px 7px; border-radius: 6px; font-size: 11px; margin-left: 4px; }
@@ -224,12 +223,12 @@ body.mode-view {
 .mode-view .muted { color: rgba(255,255,255,.7); }
 .v-login, .v-start { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
 .v-login-form { width: 380px; color: var(--ink); }
-.mode-view .logo { background: #fff; padding: 0.6vh 0.8vw; border-radius: 0.8vw; box-sizing: content-box; }
+.mode-view .logo-lg { height: 11vh; min-height: 72px; }
 .v-wrap { height: 100vh; display: flex; flex-direction: column; }
 .v-top { display: flex; align-items: center; gap: 2vw; padding: 1.4vh 2.2vw; background: rgba(0,0,0,.18); border-bottom: 1px solid rgba(255,255,255,.08); }
 .v-brand { display: flex; align-items: center; gap: 1.2vw; }
 .v-brand .brand-title { font-size: 2.2vw; }
-.v-top .logo-md { height: 4.4vh; }
+.v-top .logo-md { height: 5vh; }
 .v-online { flex: 1; display: flex; justify-content: center; gap: 0.8vw; }
 .chip { display: flex; align-items: center; gap: 0.5vw; background: rgba(255,255,255,.1); padding: 0.6vh 1vw; border-radius: 99px; font-size: 1.15vw; font-weight: 600; }
 .chip .dot { background: var(--tc); width: 0.8vw; height: 0.8vw; }

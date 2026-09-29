@@ -159,8 +159,10 @@ export const fmtScore = (n) => {
 export const LETTERS = ['A', 'B', 'C', 'D'];
 export const TEAM_CLASS = { 1: 't1', 2: 't2', 3: 't3' };
 
-export function logoHtml(cls = '') {
-  return `<img class="logo ${cls}" src="${import.meta.env.BASE_URL}logo.png" alt="BIDV" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'logo-fallback ${cls}',textContent:'BIDV'}))">`;
+// dark = true: logo chữ trắng cho nền tối (màn chiếu, header MC); false: logo màu cho nền sáng
+export function logoHtml(cls = '', dark = false) {
+  const file = dark ? 'logo-white.png' : 'logo-color.png';
+  return `<img class="logo ${cls}" src="${import.meta.env.BASE_URL}${file}" alt="BIDV" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'logo-fallback ${cls}',textContent:'BIDV'}))">`;
 }
 
 export function deviceId() {

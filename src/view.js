@@ -36,7 +36,7 @@ export function mountView(el) {
 function renderLogin(msg = '') {
   root.innerHTML = `
     <div class="v-login">
-      ${logoHtml('logo-lg')}
+      ${logoHtml('logo-lg', true)}
       <div class="brand-title xl">Smart<span>Banker</span></div>
       <form class="card v-login-form" id="f" autocomplete="off">
         <div class="form-title">Màn hình trình chiếu</div>
@@ -77,7 +77,7 @@ async function verify() {
 function showStartOverlay() {
   root.innerHTML = `
     <div class="v-start">
-      ${logoHtml('logo-lg')}
+      ${logoHtml('logo-lg', true)}
       <div class="brand-title xl">Smart<span>Banker</span></div>
       <button class="btn btn-gold btn-xl" id="go">▶ Bắt đầu trình chiếu</button>
       <p class="muted">Bấm để bật âm thanh và toàn màn hình</p>
@@ -94,7 +94,7 @@ async function start() {
   root.innerHTML = `
     <div class="v-wrap">
       <header class="v-top">
-        <div class="v-brand">${logoHtml('logo-md')}<div class="brand-title">Smart<span>Banker</span></div></div>
+        <div class="v-brand">${logoHtml('logo-md', true)}<div class="brand-title">Smart<span>Banker</span></div></div>
         <div class="v-online" id="online"></div>
         <div class="v-tools">
           <button class="icon-btn" id="mute" title="Tắt/bật âm thanh">🔊</button>
