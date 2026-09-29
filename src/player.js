@@ -7,7 +7,10 @@ const KEY = 'sb_player';
 let root;
 let session = load();
 let summary = null;          // my_summary
-let selection = { q: null, choice: null, confirmed: null };
+// Lựa chọn gắn với TỪNG LƯỢT CHẠY câu hỏi (không chỉ số câu) — để "Chạy lại câu này" / reset rồi chơi lại
+// không giữ đáp án cũ
+let selection = { run: null, choice: null, confirmed: null };
+let currentRun = null;
 let sending = false;
 let queued = null;
 let lastKey = '';
@@ -61,6 +64,30 @@ function renderLogin(msg = '') {
   });
 }
 
+// Mỗi lần MC bấm "Bắt đầu câu" là 1 lượt mới (version của state khi vào pha 'question' thay đổi);
+// sang pha 'options' thì countdown_start_at là duy nhất cho lượt đó
+function runKey(s) {
+  if (!s || s.q_no == null) return null;
+  if (s.phase === 'question') return `${s.q_no}:q${s.version}`;
+  if (s.payload?.countdown_start_at) return `${s.q_no}:${s.payload.countdown_start_at}`;
+  return null;
+}
+
+function onStateChange(s) {
+  const rk = runKey(s);
+  const isNewQuestion = s.phase === 'question' || (s.phase === 'options' && rk !== currentRun);
+  if (isNewQuestion && rk !== currentRun) {
+    currentRun = rk;
+    selection = { run: rk, choice: null, confirmed: null };
+    queued = null;
+    if (summary) summary = { ...summary, current: null };
+  } else if (rk) {
+    currentRun = rk;
+  }
+  refreshSummaryIfNeeded();
+  render();
+}
+
 let started = false;
 function startGame() {
   lastKey = '';
@@ -68,7 +95,7 @@ function startGame() {
     started = true;
     loadParts().then(() => { lastKey = ''; render(); });
     startStateSync({ pollMs: 0 });
-    onState(() => { refreshSummaryIfNeeded(); render(); });
+    onState(onStateChange);
     setInterval(tick, 100);
   }
   heartbeat();
@@ -117,8 +144,9 @@ async function refreshSummaryIfNeeded(force = false) {
     if (!r.valid) return;
     summary = r;
     // khôi phục lựa chọn khi vào lại giữa chừng
-    if (r.current && s.q_no === r.current.q_no && selection.q !== s.q_no) {
-      selection = { q: s.q_no, choice: r.current.choice, confirmed: r.current.choice };
+    const rk = runKey(s);
+    if (r.current && s.phase === 'options' && s.q_no === r.current.q_no && rk === runKey(game.state) && !selection.choice) {
+      selection = { run: rk, choice: r.current.choice, confirmed: r.current.choice };
     }
     lastKey = '';
     render();
@@ -131,11 +159,12 @@ function choose(letter) {
   if (!s || s.phase !== 'options') return;
   const t = optionsTiming(s.payload);
   if (t.stage !== 'answering') return;
-  if (selection.q !== s.q_no) selection = { q: s.q_no, choice: null, confirmed: null };
+  const rk = runKey(s);
+  if (selection.run !== rk) selection = { run: rk, choice: null, confirmed: null };
   selection.choice = letter;
   if (navigator.vibrate) navigator.vibrate(30);
   paintOptions();
-  queued = { q: s.q_no, choice: letter };
+  queued = { q: s.q_no, run: rk, choice: letter };
   flush();
 }
 
@@ -146,12 +175,12 @@ async function flush() {
   queued = null;
   try {
     await rpc('submit_answer', { p_token: session.token, p_q: job.q, p_choice: job.choice });
-    if (selection.q === job.q) selection.confirmed = job.choice;
+    if (selection.run === job.run) selection.confirmed = job.choice;
   } catch (err) {
     const m = errText(err);
     if (/mạng/.test(m)) {
-      // lỗi mạng: thử lại nếu người chơi chưa đổi ý khác
-      if (!queued) queued = job;
+      // lỗi mạng: thử lại nếu người chơi chưa đổi ý khác và vẫn là lượt câu hỏi đó
+      if (!queued && job.run === currentRun) queued = job;
       await new Promise((r) => setTimeout(r, 700));
     } else {
       toast(m, 'error');
@@ -286,7 +315,7 @@ function paintOptions() {
   const s = game.state;
   if (!s || s.phase !== 'options') return;
   const t = optionsTiming(s.payload);
-  const sel = selection.q === s.q_no ? selection : { choice: null, confirmed: null };
+  const sel = selection.run === runKey(s) ? selection : { choice: null, confirmed: null };
   LETTERS.forEach((L, i) => {
     const b = root.querySelector(`#opt-${L}`);
     if (!b) return;
