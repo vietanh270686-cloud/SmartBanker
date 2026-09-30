@@ -243,14 +243,14 @@ body.mode-view {
 @keyframes stageIn { from { opacity: 0; transform: translateY(2vh) scale(0.985); } }
 .eyebrow { font-size: 1.6vw; letter-spacing: 0.4vw; text-transform: uppercase; color: var(--gold); font-weight: 700; }
 .brand-title.hero { font-size: 7.5vw; margin: 1vh 0 1.6vh; }
-.lobby-sub { display: flex; align-items: center; flex-wrap: wrap; gap: 1.2vw; margin-bottom: 4vh; }
+.lobby-sub { display: flex; flex-direction: column; align-items: flex-start; gap: 1.4vh; margin-bottom: 3.5vh; }
 .ls-branch { font-size: 2vw; font-weight: 700; color: #fff; letter-spacing: 0.05vw; }
 .ls-date { font-size: 1.35vw; font-weight: 800; color: var(--teal-900); background: var(--gold); padding: 0.7vh 1.1vw; border-radius: 99px; letter-spacing: 0.05vw; }
 .sec-title { font-size: 1.4vw; text-transform: uppercase; letter-spacing: 0.2vw; color: rgba(255,255,255,.7); font-weight: 700; margin-bottom: 1.5vh; }
 
 /* Lobby */
 .v-lobby { height: 100%; display: grid; grid-template-columns: 1.3fr 1fr; gap: 4vw; align-items: center; }
-.lobby-steps { display: grid; gap: 1.4vh; font-size: 1.7vw; margin-bottom: 4.5vh; }
+.lobby-steps { display: grid; gap: 1.3vh; font-size: 1.7vw; margin-bottom: 4vh; }
 .lobby-steps b { display: inline-flex; width: 2.6vw; height: 2.6vw; border-radius: 50%; background: var(--gold); color: var(--teal-900); align-items: center; justify-content: center; margin-right: 1vw; }
 .lobby-online { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4vw; }
 .lobby-team { background: rgba(255,255,255,.08); border-top: 0.6vh solid var(--tc); border-radius: 1vw; padding: 2vh 1.5vw; text-align: center; }
