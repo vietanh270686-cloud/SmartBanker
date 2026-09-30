@@ -24,6 +24,13 @@ const ERROR_TEXT = {
   KHONG_CO_QUYEN: 'Tài khoản không có quyền thực hiện thao tác này.',
   SAI_BUOC: 'Thao tác không hợp lệ ở bước hiện tại.',
   CHUA_HET_GIO: 'Chưa hết giờ trả lời.',
+  KHONG_PHAI_DOI_TRUONG: 'Bạn không phải đội trưởng — chỉ đội trưởng được bốc thăm.',
+  KHONG_DUOC_BOC: 'Bạn không thuộc danh sách bốc thăm.',
+  CHUA_DEN_LUOT: 'Chưa đến lượt của bạn.',
+  CHUA_MO_BOC_THAM: 'MC chưa mở bốc thăm.',
+  HET_CAU_HOI: 'Đã hết câu hỏi để bốc.',
+  DA_CONG_BO: 'Đã công bố kết quả — không sửa điểm được nữa.',
+  KHONG_CO_LUOT: 'Không tìm thấy lượt thi này.',
 };
 
 export function errText(err) {
@@ -135,6 +142,39 @@ export function optionsTiming(payload, now = serverNow()) {
   const totalMs = ce - cs;
   return { revealed: now < start ? 0 : revealed, stage, remainingMs, totalMs };
 }
+
+// Pha 'intro_perf' / 'speech_perf': đồng hồ đếm ngược + đếm quá giờ
+// mode: idle | prep | prep_over | run | over | stopped
+export function perfTiming(p, now = serverNow()) {
+  const dur = (p.duration_s || 0) * 1000;
+  if (p.started_at) {
+    const end = p.stopped_at || now;
+    const elapsed = Math.max(0, end - p.started_at);
+    return {
+      mode: p.stopped_at ? 'stopped' : elapsed > dur ? 'over' : 'run',
+      remainingMs: Math.max(0, dur - elapsed), overMs: Math.max(0, elapsed - dur), totalMs: dur, elapsedMs: elapsed,
+    };
+  }
+  if (p.prep_started_at) {
+    const pd = (p.prep_s || 0) * 1000;
+    const elapsed = Math.max(0, now - p.prep_started_at);
+    return { mode: elapsed > pd ? 'prep_over' : 'prep', remainingMs: Math.max(0, pd - elapsed), overMs: Math.max(0, elapsed - pd), totalMs: pd, elapsedMs: elapsed };
+  }
+  return { mode: 'idle', remainingMs: dur, overMs: 0, totalMs: dur, elapsedMs: 0 };
+}
+
+export function fmtClock(ms) {
+  const t = Math.ceil(Math.max(0, ms) / 1000);
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+export function fmtOver(ms) {
+  const t = Math.floor(Math.max(0, ms) / 1000);
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+
+// Bốc thăm: mục nào đã bốc và đã qua thời gian "quay số"
+export const isRevealed = (e, now = serverNow()) => e.order_no != null && e.reveal_at != null && now >= e.reveal_at;
+export const isDrawing = (e, now = serverNow()) => e.order_no != null && e.reveal_at != null && now < e.reveal_at;
 
 export const TOP10_STEP_MS = 3000;
 // Pha 'final_top10': hạng 10 -> 4 tự chạy, mỗi người 3s

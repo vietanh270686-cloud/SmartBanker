@@ -420,3 +420,123 @@ body.mode-view {
 .confetti { position: absolute; inset: -3vh -3.5vw; pointer-events: none; overflow: hidden; }
 .confetti i { position: absolute; top: -5vh; left: var(--x); width: 0.8vw; height: 1.6vh; background: var(--c); transform: rotate(var(--r)); animation: fall var(--t) linear var(--d) infinite; opacity: 0.9; }
 @keyframes fall { to { transform: translateY(110vh) rotate(calc(var(--r) + 720deg)); } }
+
+/* =================== PHẦN 1 / PHẦN 3 / TRAO GIẢI (VIEW) =================== */
+.part-eyebrow { font-size: 1.5vw; letter-spacing: 0.4vw; font-weight: 700; color: rgba(255,255,255,.75); margin-bottom: 1vh; }
+.stage-eyebrow { text-align: center; font-size: 1.5vw; letter-spacing: 0.4vw; font-weight: 800; color: rgba(255,255,255,.75); margin-bottom: 1vh; }
+
+.v-draw { height: 100%; display: flex; flex-direction: column; }
+.draw-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5vw; align-items: center; padding: 0 2vw; }
+.draw-card { background: rgba(255,255,255,.08); border-top: 0.8vh solid var(--tc); border-radius: 1.6vw; padding: 3.5vh 1.5vw; text-align: center; transition: 0.4s; }
+.dc-name { font-size: 2.8vw; font-weight: 900; color: var(--tc); line-height: 1.15; }
+.dc-sub { font-size: 1.3vw; opacity: 0.8; margin-top: 0.8vh; min-height: 2vw; }
+.dc-slot { margin: 3vh auto 2vh; width: 13vw; height: 13vw; border-radius: 50%; background: rgba(0,0,0,.25); border: 0.4vw dashed rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; }
+.dc-num { font-size: 8vw; font-weight: 900; line-height: 1; opacity: 0.4; }
+.dc-state { font-size: 1.4vw; font-weight: 700; opacity: 0.85; }
+.draw-card.drawing .dc-slot { border-color: var(--gold); animation: pulse 0.5s infinite; }
+.draw-card.drawing .dc-num { opacity: 1; color: var(--gold); }
+.draw-card.revealed { background: var(--tc); color: var(--teal-900); box-shadow: 0 0 8vh color-mix(in srgb, var(--tc) 50%, transparent); animation: reveal 0.7s cubic-bezier(.2,1.4,.3,1); }
+.draw-card.revealed .dc-name { color: var(--teal-900); }
+.draw-card.revealed .dc-slot { background: #fff; border: 0; }
+.draw-card.revealed .dc-num { opacity: 1; color: var(--teal-900); }
+.draw-hint, .draw-order { text-align: center; font-size: 1.9vw; margin: 2vh 0 1vh; }
+.draw-hint b { color: var(--gold); }
+.draw-order { display: flex; justify-content: center; align-items: center; gap: 1.2vw; flex-wrap: wrap; animation: slideIn 0.6s both; }
+.draw-order span { background: var(--tc); color: var(--teal-900); font-weight: 800; padding: 1vh 1.6vw; border-radius: 99px; display: inline-flex; gap: 0.8vw; align-items: center; }
+.draw-order span b { background: #fff; border-radius: 50%; width: 2.6vw; height: 2.6vw; display: inline-flex; align-items: center; justify-content: center; }
+.draw-order i { font-style: normal; opacity: 0.6; }
+
+.v-perf { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2.5vh; }
+.perf-who .pw-name { font-size: 5vw; font-weight: 900; line-height: 1.1; color: var(--tc); text-shadow: 0 1vh 4vh rgba(0,0,0,.3); }
+.perf-who .pw-team { font-size: 2vw; font-weight: 700; opacity: 0.85; margin-top: 0.6vh; }
+.v-perf.speech .perf-who .pw-name { font-size: 4vw; color: #fff; }
+.v-perf.speech .perf-who .pw-team { color: var(--tc); }
+.sp-q { max-width: 80vw; background: rgba(255,255,255,.1); border: 0.25vw solid rgba(251,186,32,.6); border-radius: 1.4vw; padding: 2.4vh 2.5vw; font-size: 2.3vw; font-weight: 700; line-height: 1.35; animation: reveal 0.6s cubic-bezier(.2,1.4,.3,1); }
+.sp-q-lbl { font-size: 1.2vw; letter-spacing: 0.3vw; text-transform: uppercase; color: var(--gold); margin-bottom: 1vh; }
+.sp-q.waiting { border-style: dashed; font-weight: 600; font-size: 1.8vw; animation: none; }
+.sp-q.waiting b { color: var(--gold); }
+.sp-q small { display: block; font-size: 1.2vw; opacity: 0.7; margin-top: 1vh; }
+.sp-q.drawing { animation: none; }
+.sp-q.drawing .dc-num { opacity: 1; color: var(--gold); font-size: 6vw; }
+.perf-clock { min-width: 40vw; }
+.pc-label { font-size: 1.6vw; letter-spacing: 0.3vw; text-transform: uppercase; font-weight: 800; opacity: 0.85; }
+.pc-time { font-size: 13vw; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.2vw; }
+.v-perf.speech .pc-time { font-size: 10vw; }
+.pc-bar { height: 1.4vh; background: rgba(0,0,0,.25); border-radius: 99px; overflow: hidden; margin-top: 1.5vh; }
+.pc-bar div { height: 100%; background: var(--gold); border-radius: 99px; transition: width 0.2s linear; }
+.pc-note { font-size: 1.5vw; opacity: 0.85; margin-top: 1.2vh; min-height: 2vw; }
+.perf-clock.mode-idle .pc-time { opacity: 0.45; }
+.perf-clock.urgent .pc-time { color: #ff8b8f; animation: pulse 1s infinite; }
+.perf-clock.urgent .pc-bar div { background: var(--bad); }
+.perf-clock.mode-over .pc-time, .perf-clock.mode-prep_over .pc-time { color: #ff5c61; animation: blink 0.8s infinite; }
+.perf-clock.mode-over .pc-label { color: #ff8b8f; }
+.perf-clock.mode-stopped .pc-time { color: var(--gold); }
+
+.v-final.award .podium-card { min-height: 30vh; }
+.pc-break { font-size: 1.1vw; font-weight: 700; margin-top: 1vh; opacity: 0.85; }
+.pc-name.sm { font-size: 2.3vw; line-height: 1.15; text-align: center; }
+.pc-team { font-size: 1.3vw; font-weight: 800; opacity: 0.8; }
+
+.v-summary { height: 100%; display: flex; flex-direction: column; position: relative; }
+.sum-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 3vw; align-content: center; }
+.sum-col { display: grid; gap: 1.6vh; }
+.sum-row { display: grid; grid-template-columns: 5vw 1fr auto; align-items: center; gap: 1vw; background: rgba(255,255,255,.1); border-left: 0.6vw solid var(--tc); border-radius: 1vw; padding: 2vh 1.5vw; animation: slideIn 0.6s both; }
+.sum-medal { font-size: 3.5vw; }
+.sum-name { font-size: 2.2vw; font-weight: 900; }
+.sum-sub { font-size: 1.2vw; color: var(--tc); font-weight: 700; }
+.sum-total { font-size: 2.6vw; color: var(--gold); }
+
+/* =================== PLAYER: bốc thăm =================== */
+.btn-draw { font-size: 24px; padding: 26px 20px; border-radius: 20px; width: 100%; margin: 18px 0 10px; box-shadow: 0 10px 30px rgba(224,160,0,.35); animation: pulse 1.4s infinite; }
+.draw-result { margin: 18px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.draw-result small { font-size: 15px; font-weight: 700; color: var(--muted); }
+.draw-result b { font-size: 90px; line-height: 1; color: var(--teal); width: 150px; height: 150px; border-radius: 50%; background: #fff; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; }
+.draw-result.spinning b { color: var(--gold-600); animation: pulse 0.5s infinite; }
+.p-speech-q { text-align: left; font-size: 18px; font-weight: 700; line-height: 1.4; color: var(--teal-900); margin-top: 14px; }
+.p-speech-q .lbl { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.p-clock { margin-top: 16px; display: flex; flex-direction: column; align-items: center; }
+.p-clock small { font-size: 13px; font-weight: 700; color: var(--muted); }
+.p-clock b { font-size: 46px; color: var(--teal); font-variant-numeric: tabular-nums; }
+.p-clock.mode-over b, .p-clock.mode-prep_over b { color: var(--bad); }
+
+/* =================== HOST: bổ sung =================== */
+.h-bigtime { font-size: 40px; font-weight: 900; color: var(--teal); font-variant-numeric: tabular-nums; margin-top: 6px; }
+.h-bigtime small { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
+.h-bigtime.mode-over, .h-bigtime.mode-prep_over { color: var(--bad); }
+.h-bigtime.mode-stopped { font-size: 22px; }
+.warn { color: var(--bad); font-weight: 700; }
+.captain-tag { background: var(--gold); color: var(--teal-900); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; vertical-align: middle; }
+.btn.star { color: #b8c6c4; font-size: 16px; padding: 4px 9px; }
+.btn.star.on { color: var(--gold-600); opacity: 1; }
+.h-res-row .btn-sm { margin: 0; }
+
+/* =================== THƯ KÝ =================== */
+.sec-tabs { display: grid; grid-template-columns: 1fr 1fr; background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 54px; z-index: 4; }
+.sec-tabs button { border: 0; background: none; padding: 13px 6px; font-weight: 800; font-size: 14px; color: var(--muted); border-bottom: 3px solid transparent; }
+.sec-tabs button.active { color: var(--teal); border-bottom-color: var(--teal); }
+.sec-main { padding-bottom: 30px; }
+.sec-lock { background: #fff4d6; color: #7a5600; font-weight: 700; padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; text-align: center; }
+.sec-hint { font-size: 13px; color: var(--muted); margin: 0 2px 10px; }
+.sec-card { border-left: 6px solid var(--tc, var(--line)); }
+.sec-card.now { box-shadow: 0 0 0 3px var(--gold), var(--shadow); }
+.sec-head { display: flex; align-items: center; gap: 10px; }
+.sec-order { flex: none; width: 34px; height: 34px; border-radius: 10px; background: var(--teal-50); color: var(--teal-700); font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.sec-who { flex: 1; min-width: 0; }
+.sec-name { font-weight: 800; font-size: 17px; }
+.sec-sub { font-size: 12px; color: var(--muted); }
+.sec-now { display: none; background: var(--bad); color: #fff; font-size: 11px; font-weight: 800; padding: 3px 7px; border-radius: 6px; animation: blink 1.2s infinite; }
+.sec-card.now .sec-now { display: inline-block; }
+.sec-q { font-size: 13px; background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+.sec-time { font-size: 13px; margin: 10px 0 8px; }
+.sec-time .live, .sec-time .over { color: var(--bad); font-weight: 700; }
+.sec-time .ok { color: var(--ok); font-weight: 700; }
+.sec-judges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sec-judge { margin: 0; font-size: 12px; text-align: center; position: relative; }
+.sec-judge input { text-align: center; font-size: 20px; font-weight: 800; padding: 10px 4px; margin-top: 4px; }
+.sec-judge input:disabled { background: var(--bg); color: var(--muted); }
+.sec-save { position: absolute; top: 20px; right: 4px; font-size: 11px; font-weight: 900; }
+.sec-save.ok { color: var(--ok); }
+.sec-save.saving { color: var(--gold-600); }
+.sec-save.err { color: var(--bad); }
+.sec-avg { margin-top: 10px; font-size: 14px; }
+.sec-avg b { font-size: 18px; color: var(--teal); }

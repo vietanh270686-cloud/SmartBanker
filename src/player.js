@@ -1,6 +1,7 @@
 import {
   rpc, errText, esc, fmtSec, fmtScore, LETTERS, TEAM_CLASS, logoHtml, deviceId, confirmBox, toast,
   game, onState, startStateSync, notifyVersion, optionsTiming, loadParts, partTopic,
+  perfTiming, fmtClock, fmtOver, isRevealed, isDrawing, serverNow,
 } from './lib.js';
 
 const KEY = 'sb_player';
@@ -213,6 +214,12 @@ function keyFor(s) {
     const t = optionsTiming(s.payload);
     k += `:${t.stage}`;
   }
+  if (s.phase === 'intro_draw' || s.phase === 'speech_draw') {
+    k += ':' + (s.payload.entries || []).map((e) => (isRevealed(e) ? 'r' : isDrawing(e) ? 'd' : '-')).join('');
+  }
+  if (s.phase === 'speech_perf' && s.payload.question) k += serverNow() >= s.payload.question_reveal_at ? ':Q' : ':q';
+  if (s.phase === 'intro_perf' || s.phase === 'speech_perf') k += ':' + perfTiming(s.payload).mode;
+  k += drawing ? ':busy' : '';
   return k;
 }
 
@@ -227,6 +234,7 @@ function render() {
   root.querySelectorAll('[data-choice]').forEach((b) =>
     b.addEventListener('click', () => choose(b.dataset.choice)),
   );
+  root.querySelector('#draw-btn')?.addEventListener('click', doDraw);
   tick();
 }
 
@@ -252,7 +260,7 @@ function body(s) {
       </div>`;
     case 'part_intro':
       return `<div class="p-wait">
-        <div class="part-tag">Phần ${s.part_no}</div>
+        <div class="part-tag">Phần 2 · Vòng ${s.part_no}</div>
         <h2>${esc(p.part_name)}</h2>
         ${partTopic(s.part_no) ? `<p class="p-topic">Chủ đề: ${esc(partTopic(s.part_no))}</p>` : ''}
         <p>${p.q_count} câu hỏi · Chuẩn bị sẵn sàng!</p>
@@ -272,10 +280,24 @@ function body(s) {
       return resultBody(s);
     case 'part_end':
       return `<div class="p-wait">
-        <div class="part-tag">Kết thúc phần ${s.part_no}</div>
+        <div class="part-tag">Kết thúc vòng ${s.part_no}</div>
         <h2>${esc(p.part_name)}</h2>
-        <p>${p.next_part ? 'Chờ MC chuyển sang phần tiếp theo…' : 'Chờ công bố kết quả chung cuộc…'}</p>
+        <p>${p.next_part ? 'Chờ MC chuyển sang vòng tiếp theo…' : 'Chờ công bố Top 10 cá nhân…'}</p>
       </div>${scoreCard()}`;
+    case 'intro_draw':
+    case 'speech_draw':
+      return drawBody(s, p);
+    case 'intro_perf':
+    case 'speech_perf':
+      return perfBody(s, p);
+    case 'award_teams':
+    case 'award_individual':
+    case 'award_summary':
+      return `<div class="p-wait">
+          <div class="big-emoji">🏆</div>
+          <h2>Lễ trao giải</h2>
+          <p>Mời theo dõi trên màn hình lớn!</p>
+        </div>${scoreCard()}`;
     default:
       if (s.phase.startsWith('final')) {
         return `<div class="p-wait">
@@ -288,9 +310,83 @@ function body(s) {
   }
 }
 
+// ---------------- Phần 1 / Phần 3: bốc thăm & theo dõi ----------------
+let drawing = false;
+async function doDraw() {
+  if (drawing) return;
+  drawing = true;
+  lastKey = '';
+  render();
+  if (navigator.vibrate) navigator.vibrate(60);
+  try {
+    await rpc('player_draw', { p_token: session.token });
+  } catch (err) {
+    toast(errText(err), 'error');
+  } finally {
+    drawing = false;
+    lastKey = '';
+    render();
+  }
+}
+
+const STAGE_TAG = { intro: 'Phần 1 · Giới thiệu đội thi', speech: 'Phần 3 · Hùng biện' };
+
+function drawBody(s, p) {
+  const mine = (p.entries || []).find((e) => e.code === session.code);
+  const others = p.stage === 'intro' ? 'Đội trưởng các đội đang bốc thăm thứ tự thi' : '3 thí sinh đang bốc thăm thứ tự thi';
+  if (!mine) {
+    return `<div class="p-wait"><div class="part-tag">${STAGE_TAG[p.stage]}</div>
+      <div class="big-emoji">🎲</div><h2>Bốc thăm thứ tự</h2><p>${others}. Mời theo dõi trên màn hình lớn!</p></div>`;
+  }
+  let inner;
+  if (isRevealed(mine)) {
+    inner = `<div class="draw-result"><small>${p.stage === 'intro' ? esc(mine.name) + ' thi lượt' : 'Bạn thi lượt'}</small><b>${mine.order_no}</b></div>`;
+  } else if (isDrawing(mine)) {
+    inner = `<div class="draw-result spinning"><small>Đang bốc thăm…</small><b>?</b></div>`;
+  } else {
+    inner = `<button class="btn btn-gold btn-draw" id="draw-btn" ${drawing ? 'disabled' : ''}>🎲 BỐC THĂM</button>
+      <p>${p.stage === 'intro' ? `Bạn là đội trưởng <b>${esc(mine.name)}</b> — bấm để bốc thăm thứ tự thi` : 'Bấm để bốc thăm thứ tự thi hùng biện'}</p>`;
+  }
+  return `<div class="p-wait"><div class="part-tag">${STAGE_TAG[p.stage]}</div>${inner}</div>`;
+}
+
+function perfBody(s, p) {
+  const t = perfTiming(p);
+  const me = p.stage === 'speech' && p.target === session.code;
+  let q = '';
+  if (p.stage === 'speech') {
+    if (!p.question) {
+      q = me
+        ? `<button class="btn btn-gold btn-draw" id="draw-btn" ${drawing ? 'disabled' : ''}>🎲 BỐC THĂM CÂU HỎI</button>
+           <p>Đến lượt bạn — bấm để bốc câu hỏi hùng biện</p>`
+        : '<p>Thí sinh đang bốc thăm câu hỏi…</p>';
+    } else if (serverNow() < p.question_reveal_at) {
+      q = `<div class="draw-result spinning"><small>Đang bốc câu hỏi…</small><b>?</b></div>`;
+    } else {
+      q = `<div class="card p-speech-q"><span class="lbl">Câu hỏi số ${p.question.id}</span>${esc(p.question.text)}</div>`;
+    }
+  }
+  const who = p.stage === 'intro'
+    ? `<h2>${esc(p.name)}</h2><p>đang thi phần giới thiệu</p>`
+    : `<h2>${me ? 'Lượt thi của bạn' : esc(p.name)}</h2><p>${esc(p.team_name)}</p>`;
+  const clock = t.mode === 'idle' ? '' : `<div class="p-clock mode-${t.mode}" id="p-clock"></div>`;
+  return `<div class="p-wait"><div class="part-tag">${STAGE_TAG[p.stage]} · Lượt ${p.order_no ?? '–'}/${p.total}</div>
+    ${who}${q}${clock}</div>`;
+}
+
+function paintClock() {
+  const s = game.state;
+  const el = root.querySelector('#p-clock');
+  if (!el || !s) return;
+  const t = perfTiming(s.payload);
+  const lbl = { prep: 'Chuẩn bị', prep_over: 'Hết giờ chuẩn bị', run: 'Còn lại', over: 'Quá giờ', stopped: 'Kết thúc' }[t.mode] || '';
+  const val = t.mode === 'over' || t.mode === 'prep_over' ? '+' + fmtOver(t.overMs) : t.mode === 'stopped' ? fmtOver(t.elapsedMs) : fmtClock(t.remainingMs);
+  el.innerHTML = `<small>${lbl}</small><b>${val}</b>`;
+}
+
 function qHead(s) {
   const p = s.payload;
-  return `<div class="p-qhead"><span class="part-tag">Phần ${s.part_no} · ${esc(p.part_name)}</span>
+  return `<div class="p-qhead"><span class="part-tag">Vòng ${s.part_no} · ${esc(p.part_name)}</span>
     <span class="q-count">Câu ${p.idx}/${p.q_count}</span></div>`;
 }
 
@@ -340,6 +436,10 @@ function paintOptions() {
 function tick() {
   const s = game.state;
   if (!s || !session) return;
+  if (['intro_draw', 'speech_draw', 'intro_perf', 'speech_perf'].includes(s.phase)) {
+    if (keyFor(s) !== lastKey) { render(); return; }
+    paintClock();
+  }
   if (s.phase === 'options') {
     if (keyFor(s) !== lastKey) { render(); return; }
     const t = optionsTiming(s.payload);

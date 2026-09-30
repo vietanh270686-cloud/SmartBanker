@@ -9,6 +9,9 @@ const app = document.getElementById('app');
 if (route.startsWith('host')) {
   document.body.classList.add('mode-host');
   import('./host.js').then((m) => m.mountHost(app));
+} else if (route.startsWith('thuky')) {
+  document.body.classList.add('mode-host');
+  import('./secretary.js').then((m) => m.mountSecretary(app));
 } else if (route.startsWith('view')) {
   document.body.classList.add('mode-view');
   import('./view.js').then((m) => m.mountView(app));

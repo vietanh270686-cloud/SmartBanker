@@ -1,6 +1,7 @@
 import {
   rpc, errText, esc, fmtScore, LETTERS, TEAM_CLASS, logoHtml, confirmBox, toast,
   game, onState, startStateSync, fetchState, optionsTiming, top10Auto,
+  perfTiming, fmtClock, fmtOver, isRevealed, isDrawing, serverNow,
 } from './lib.js';
 import { exportExcel } from './export.js';
 
@@ -18,6 +19,9 @@ const PHASE_LABEL = {
   lobby: 'Phòng chờ', part_intro: 'Giới thiệu phần thi', question: 'Đang hiện câu hỏi', options: 'Đáp án / đếm ngược',
   result: 'Kết quả câu hỏi', part_end: 'Tổng kết phần', final_teams: 'Công bố điểm đội', final_top10: 'Công bố top 10',
   final_board: 'Bảng tổng sắp', final_congrats: 'Chúc mừng top 3',
+  intro_draw: 'Phần 1 · Bốc thăm thứ tự', intro_perf: 'Phần 1 · Giới thiệu đội thi',
+  speech_draw: 'Phần 3 · Bốc thăm thứ tự', speech_perf: 'Phần 3 · Hùng biện',
+  award_teams: 'Trao giải đồng đội', award_individual: 'Trao giải cá nhân', award_summary: 'Kết quả chung cuộc',
 };
 
 export function mountHost(el) {
@@ -136,12 +140,37 @@ async function act(action, arg = null, confirmMsg = null) {
   }
 }
 
+async function stageAct(action, target = null, arg = null, confirmMsg = null) {
+  if (busy) return;
+  if (confirmMsg && !(await confirmBox(confirmMsg))) return;
+  busy = true;
+  lastKey = '';
+  render();
+  try {
+    await rpc('host_stage', { p_secret: secret, p_action: action, p_target: target, p_arg: arg });
+    await fetchState();
+  } catch (err) {
+    toast(errText(err), 'error');
+  } finally {
+    busy = false;
+    lastKey = '';
+    render();
+  }
+}
+
 // ---------------- Render ----------------
 function keyFor() {
   const s = game.state;
   let k = `${tab}:${busy}:${s?.phase}:${s?.version}`;
   if (s?.phase === 'options') k += ':' + optionsTiming(s.payload).stage;
   if (s?.phase === 'final_top10') k += ':' + top10Auto(s.payload).done;
+  if (s?.phase === 'intro_draw' || s?.phase === 'speech_draw') {
+    k += ':' + (s.payload.entries || []).map((e) => (isRevealed(e) ? 'r' : isDrawing(e) ? 'd' : '-')).join('');
+  }
+  if (s?.phase === 'intro_perf' || s?.phase === 'speech_perf') {
+    const t = perfTiming(s.payload);
+    k += ':' + (t.mode === 'over' ? 'run' : t.mode === 'prep_over' ? 'prep' : t.mode);
+  }
   return k;
 }
 
@@ -168,6 +197,20 @@ function wire(main) {
       await rpc('host_kick', { p_secret: secret, p_code: b.dataset.kick });
       toast('Đã kick ' + b.dataset.name, 'ok');
       loadPlayers();
+    } catch (err) { toast(errText(err), 'error'); }
+  }));
+  main.querySelectorAll('[data-sact]').forEach((b) => b.addEventListener('click', () => {
+    const arg = b.dataset.arg === undefined ? null : Number(b.dataset.arg);
+    stageAct(b.dataset.sact, b.dataset.target ?? null, arg, b.dataset.confirm || null);
+  }));
+  main.querySelectorAll('[data-captain]').forEach((b) => b.addEventListener('click', async () => {
+    const [team, code, name] = [Number(b.dataset.team), b.dataset.captain, b.dataset.name];
+    if (!(await confirmBox(`Chỉ định <b>${esc(name)}</b> làm đội trưởng <b>Đội ${team}</b>?`))) return;
+    try {
+      await rpc('host_set_captain', { p_secret: secret, p_team: team, p_code: code });
+      toast('Đã chỉ định đội trưởng', 'ok');
+      loadPlayers();
+      loadOverview();
     } catch (err) { toast(errText(err), 'error'); }
   }));
   main.querySelector('#export')?.addEventListener('click', () => exportExcel(secret));
@@ -207,11 +250,81 @@ function btn(label, action, arg = null, { confirm = null, cls = 'btn-primary', d
     ${confirm ? `data-confirm="${esc(confirm)}"` : ''} ${disabled || busy ? 'disabled' : ''}>${label}</button>`;
 }
 
+function sbtn(label, action, { target = null, arg = null, confirm = null, cls = 'btn-primary', block = true, xl = true } = {}) {
+  return `<button class="btn ${cls} ${block ? 'btn-block' : ''} ${xl ? 'btn-xl' : ''}" data-sact="${action}"
+    ${target !== null ? `data-target="${esc(target)}"` : ''} ${arg !== null ? `data-arg="${arg}"` : ''}
+    ${confirm ? `data-confirm="${esc(confirm)}"` : ''} ${busy ? 'disabled' : ''}>${label}</button>`;
+}
+const waitBtn = (label) => `<button class="btn btn-ghost btn-block btn-xl" disabled>${label}</button>`;
+const RANK_NAME = ['Ba', 'Nhì', 'Nhất'];
+
+function drawControl(s, p) {
+  const stage = p.stage;
+  const entries = p.entries || [];
+  const done = entries.filter((e) => isRevealed(e)).length;
+  const list = entries.map((e) => `
+    <div class="h-res-row ${TEAM_CLASS[e.team_id]}">
+      <b>${esc(e.name)}</b>
+      <span>${stage === 'intro' ? (e.captain_name ? 'ĐT: ' + esc(e.captain_name) : '<span class="warn">chưa có đội trưởng</span>') : esc(e.team_name)}</span>
+      <span>${e.order_no != null ? (isRevealed(e) ? `Lượt <b>${e.order_no}</b>` : 'đang quay…')
+        : sbtn('Bốc hộ', 'draw_for', { target: e.target, cls: 'btn-ghost btn-sm', block: false, xl: false,
+          confirm: `MC bốc thăm hộ <b>${esc(e.name)}</b>?` })}</span>
+    </div>`).join('');
+  const first = entries.find((e) => e.order_no === 1);
+  const main = done === entries.length && first
+    ? sbtn(`▶ Mời lượt 1: ${esc(first.name)}`, stage === 'intro' ? 'intro_perf' : 'speech_perf', { target: first.target })
+    : waitBtn(`Đang chờ bốc thăm (${done}/${entries.length})`);
+  return {
+    status: `<div class="h-sub">Bốc thăm thứ tự thi</div>`,
+    main,
+    extra: `<div class="card h-res">${list}</div>
+      ${sbtn('↻ Bốc thăm lại từ đầu', 'reset_draw', { target: stage, cls: 'btn-ghost', xl: false, confirm: 'Huỷ kết quả bốc thăm hiện tại và <b>bốc lại từ đầu</b>?' })}`,
+  };
+}
+
+function perfControl(s, p) {
+  const stage = p.stage;
+  const t = perfTiming(p);
+  const perfAction = stage === 'intro' ? 'intro_perf' : 'speech_perf';
+  let main = '';
+  let extra = '';
+  if (stage === 'speech' && !p.question) {
+    main = waitBtn('Chờ thí sinh bốc câu hỏi…');
+    extra += sbtn('🎲 Bốc hộ câu hỏi', 'draw_for', { cls: 'btn-ghost', xl: false, confirm: `MC bốc câu hỏi hộ <b>${esc(p.name)}</b>?` });
+  } else if (t.mode === 'idle') {
+    main = stage === 'speech'
+      ? sbtn(`▶ Bắt đầu chuẩn bị ${fmtClock(p.prep_s * 1000)}`, 'timer_prep', { cls: 'btn-gold' })
+      : sbtn(`▶ Bắt đầu tính giờ ${fmtClock(p.duration_s * 1000)}`, 'timer_start', { cls: 'btn-gold' });
+    if (stage === 'speech') extra += sbtn('▶ Bỏ qua chuẩn bị — trình bày luôn', 'timer_start', { cls: 'btn-ghost', xl: false });
+  } else if (t.mode === 'prep' || t.mode === 'prep_over') {
+    main = sbtn(`▶ Bắt đầu trình bày ${fmtClock(p.duration_s * 1000)}`, 'timer_start', { cls: 'btn-gold' });
+  } else if (t.mode === 'run' || t.mode === 'over') {
+    main = sbtn('⏹ Dừng giờ', 'timer_stop', { cls: 'btn-danger' });
+  } else {
+    // đã dừng: sang lượt tiếp / phần tiếp
+    if (p.next) main = sbtn(`▶ Mời lượt ${p.next.order_no}`, perfAction, { target: p.next.target });
+    else if (stage === 'intro') {
+      main = `<button class="btn btn-primary btn-block btn-xl" data-act="open_part" data-arg="${firstPart()}"
+        data-confirm="Kết thúc Phần 1, sang <b>Phần 2 – Vòng 1</b>?" ${busy ? 'disabled' : ''}>▶ Sang Phần 2 – Vòng 1</button>`;
+    } else {
+      main = sbtn('🏆 Sang trao giải', 'award_teams', { arg: 0, cls: 'btn-gold', confirm: 'Kết thúc Hùng biện, sang <b>trao giải</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' });
+    }
+  }
+  if (t.mode !== 'idle') extra += sbtn('↻ Bấm giờ lại từ đầu', 'timer_reset', { cls: 'btn-ghost', xl: false, confirm: 'Xoá thời gian đã bấm của lượt này và <b>bấm lại từ đầu</b>?' });
+  if (stage === 'speech' && p.question) extra += sbtn('🎲 Bốc lại câu hỏi', 'redraw_question', { cls: 'btn-ghost', xl: false, confirm: 'Huỷ câu hỏi đã bốc và cho thí sinh <b>bốc lại</b>?' });
+  const q = stage === 'speech' && p.question ? `<div class="card h-qcard"><div class="h-qmeta">Câu hỏi hùng biện số ${p.question.id}</div><div class="h-qtext">${esc(p.question.text)}</div></div>` : '';
+  return {
+    status: `<div class="h-sub">Lượt ${p.order_no}/${p.total}: ${esc(p.name)}</div><div class="h-bigtime" id="h-perf-time"></div>`,
+    main,
+    extra: q + extra,
+  };
+}
+
 function currentQuestionCard(s) {
   const qq = q(s.q_no);
   if (!qq) return '';
   return `<div class="card h-qcard">
-    <div class="h-qmeta">Câu ${s.q_no} · Phần ${qq.part_no}</div>
+    <div class="h-qmeta">Câu ${s.q_no} · Vòng ${qq.part_no}</div>
     <div class="h-qtext">${esc(qq.text)}</div>
     <div class="h-qopts">${LETTERS.map((L) => `<div class="${qq.correct === L ? 'correct' : ''}"><b>${L}.</b> ${esc(qq[L.toLowerCase()])}</div>`).join('')}</div>
   </div>`;
@@ -227,11 +340,37 @@ function controlTab() {
 
   switch (s.phase) {
     case 'lobby':
-      main = btn(`▶ Bắt đầu Phần ${firstPart()}: ${esc(partName(firstPart()))}`, 'open_part', firstPart(),
-        { confirm: `Bắt đầu <b>Phần ${firstPart()}</b>?` });
+      main = sbtn('▶ Phần 1: Bốc thăm thứ tự Giới thiệu', 'intro_open', { cls: 'btn-gold', confirm: 'Bắt đầu <b>Phần 1 – Giới thiệu đội thi</b> (bốc thăm thứ tự)?' });
+      extra = btn(`Bỏ qua Phần 1 → Phần 2, Vòng ${firstPart()}`, 'open_part', firstPart(),
+        { cls: 'btn-ghost', confirm: `Bỏ qua Phần 1, bắt đầu luôn <b>Vòng ${firstPart()}: ${esc(partName(firstPart()))}</b>?` });
+      break;
+    case 'intro_draw': case 'speech_draw':
+    case 'intro_perf': case 'speech_perf': {
+      const r = s.phase.endsWith('draw') ? drawControl(s, p) : perfControl(s, p);
+      status += r.status; main = r.main; extra = r.extra;
+      break;
+    }
+    case 'award_teams': case 'award_individual': {
+      const step = p.step || 0;
+      const kind = s.phase === 'award_teams' ? 'đồng đội' : 'cá nhân';
+      status += `<div class="h-sub">Đã công bố ${step}/3 giải ${kind}</div>`;
+      main = step < 3
+        ? sbtn(`🥁 Công bố Giải ${RANK_NAME[step]} ${kind}`, s.phase, { arg: step + 1, cls: 'btn-gold' })
+        : s.phase === 'award_teams'
+          ? sbtn('▶ Sang giải cá nhân', 'award_individual', { arg: 0, confirm: 'Chuyển sang <b>trao giải cá nhân</b>?' })
+          : sbtn('🎉 Màn hình kết quả chung cuộc', 'award_summary', { cls: 'btn-gold' });
+      const items = s.phase === 'award_teams' ? p.teams : p.people;
+      extra = `<div class="card h-res">${(items || []).slice().reverse().map((it) => `
+        <div class="h-res-row ${TEAM_CLASS[it.team_id ?? it.id]}"><b>${it.rank}. ${esc(it.name)}</b><span>${fmtScore(it.total)} điểm</span>
+          <span>${s.phase === 'award_teams' ? `GT ${fmtScore(it.intro_avg)} + KT ${fmtScore(it.quiz_total)}` : `KT ${fmtScore(it.quiz_score)} + HB ${fmtScore(it.speech_avg)}`}</span></div>`).join('')}</div>`;
+      break;
+    }
+    case 'award_summary':
+      status += `<div class="h-sub">Kết thúc chương trình 🎉</div>`;
+      main = sbtn('↩ Quay lại giải cá nhân', 'award_individual', { arg: 3, cls: 'btn-ghost' });
       break;
     case 'part_intro':
-      status += `<div class="h-sub">Phần ${s.part_no}: ${esc(p.part_name)}</div>`
+      status += `<div class="h-sub">Vòng ${s.part_no}: ${esc(p.part_name)}</div>`
         + (overview?.parts.find((x) => x.part_no === s.part_no)?.topic ? `<div class="h-topic">${esc(overview.parts.find((x) => x.part_no === s.part_no).topic)}</div>` : '');
       main = btn(`▶ Bắt đầu câu ${p.first_q}`, 'start_question', p.first_q);
       break;
@@ -256,16 +395,16 @@ function controlTab() {
       extra = `<div class="card h-res">${r.teams.map((t) => `
         <div class="h-res-row ${TEAM_CLASS[t.id]}"><b>${esc(t.name)}</b><span>TB ${fmtScore(t.avg)}</span><span>✓${t.correct} ✗${t.wrong} –${t.none}</span></div>`).join('')}</div>`;
       main = p.is_last_in_part
-        ? btn(`🏁 Tổng kết Phần ${s.part_no}`, 'part_end')
+        ? btn(`🏁 Tổng kết Vòng ${s.part_no}`, 'part_end')
         : btn(`▶ Câu tiếp theo (${p.next_q})`, 'start_question', p.next_q);
       break;
     }
     case 'part_end':
-      status += `<div class="h-sub">Kết thúc Phần ${s.part_no}</div>`;
+      status += `<div class="h-sub">Kết thúc Vòng ${s.part_no}</div>`;
       main = p.next_part
-        ? btn(`▶ Chuyển sang Phần ${p.next_part}: ${esc(p.next_part_name)}`, 'open_part', p.next_part,
-          { confirm: `Chuyển sang <b>Phần ${p.next_part}: ${esc(p.next_part_name)}</b>?` })
-        : btn('🏆 Sang màn hình kết thúc', 'final_teams', 0, { confirm: 'Kết thúc phần thi và sang <b>màn hình kết quả chung cuộc</b>?', cls: 'btn-gold' });
+        ? btn(`▶ Chuyển sang Vòng ${p.next_part}: ${esc(p.next_part_name)}`, 'open_part', p.next_part,
+          { confirm: `Chuyển sang <b>Vòng ${p.next_part}: ${esc(p.next_part_name)}</b>?` })
+        : btn('🏆 Công bố Top 10 cá nhân', 'final_top10', 0, { confirm: 'Kết thúc Phần 2 và <b>công bố Top 10 cá nhân</b>?', cls: 'btn-gold' });
       break;
     case 'final_teams': {
       const step = p.step || 0;
@@ -290,8 +429,9 @@ function controlTab() {
       main = btn('🎉 Chúc mừng Top 3 vào Hùng biện', 'final_congrats', null, { cls: 'btn-gold' });
       break;
     case 'final_congrats':
-      status += `<div class="h-sub">Kết thúc chương trình 🎉</div>`;
-      main = btn('📋 Quay lại bảng tổng sắp', 'final_board', null, { cls: 'btn-ghost' });
+      status += `<div class="h-sub">3 thí sinh vào vòng Hùng biện</div>`;
+      main = sbtn('🎤 Phần 3: Bốc thăm thứ tự Hùng biện', 'speech_open', { cls: 'btn-gold', confirm: 'Sang <b>Phần 3 – Hùng biện</b> (bốc thăm thứ tự)?' });
+      extra = btn('📋 Quay lại bảng tổng sắp', 'final_board', null, { cls: 'btn-ghost' });
       break;
     default: break;
   }
@@ -316,7 +456,8 @@ function playersTab() {
       ${list.map((x) => `
         <div class="pl-row" data-s="${esc((x.name + ' ' + x.code).toLowerCase())}">
           <span class="dot ${x.online ? 'on' : x.logged_in ? 'idle' : 'off'}"></span>
-          <div class="pl-info"><div>${esc(x.name)}</div><small>${esc(x.code)} · ${x.score} điểm</small></div>
+          <div class="pl-info"><div>${esc(x.name)}${x.is_captain ? ' <span class="captain-tag">Đội trưởng</span>' : ''}</div><small>${esc(x.code)} · ${x.score} điểm</small></div>
+          <button class="btn btn-sm btn-ghost star ${x.is_captain ? 'on' : ''}" data-captain="${esc(x.code)}" data-team="${x.team_id}" data-name="${esc(x.name)}" ${x.is_captain ? 'disabled' : ''} title="Chỉ định đội trưởng">★</button>
           ${x.logged_in ? `<button class="btn btn-sm btn-ghost" data-kick="${esc(x.code)}" data-name="${esc(x.name)}">Kick</button>` : '<small class="muted">chưa vào</small>'}
         </div>`).join('')}
     </div>`;
@@ -331,7 +472,7 @@ function questionsTab() {
   const s = game.state;
   return overview.parts.map((pt) => `
     <div class="card">
-      <div class="h-part-title">Phần ${pt.part_no}: ${esc(pt.name)}${pt.topic ? `<small class="h-topic">${esc(pt.topic)}</small>` : ''}</div>
+      <div class="h-part-title">Vòng ${pt.part_no}: ${esc(pt.name)}${pt.topic ? `<small class="h-topic">${esc(pt.topic)}</small>` : ''}</div>
       ${overview.questions.filter((x) => x.part_no === pt.part_no).map((x) => `
         <div class="h-q-row ${x.done ? 'done' : ''} ${s?.q_no === x.q_no ? 'current' : ''}">
           <span class="h-q-no">${x.q_no}</span>
@@ -339,7 +480,11 @@ function questionsTab() {
           <button class="btn btn-sm btn-ghost" data-act="start_question" data-arg="${x.q_no}"
             data-confirm="Nhảy tới <b>câu ${x.q_no}</b>?${x.done ? '<br><small>Câu này đã chơi — kết quả cũ sẽ bị xoá.</small>' : ''}">Mở</button>
         </div>`).join('')}
-    </div>`).join('');
+    </div>`).join('') + `
+    <div class="card">
+      <div class="h-part-title">Câu hỏi Hùng biện (${(overview.speech_questions || []).length})</div>
+      ${(overview.speech_questions || []).map((x) => `<div class="h-q-row"><span class="h-q-no">${x.id}</span><div class="h-q-body">${esc(x.text)}</div></div>`).join('')}
+    </div>`;
 }
 
 function moreTab() {
@@ -351,11 +496,15 @@ function moreTab() {
     <div class="card"><div class="h-part-title">Chuyển màn hình</div>
       <div class="grid2">
         <button class="btn btn-ghost" data-act="lobby" data-confirm="Về <b>phòng chờ</b>?">Phòng chờ</button>
-        ${parts.map((pt) => `<button class="btn btn-ghost" data-act="open_part" data-arg="${pt.part_no}" data-confirm="Mở màn giới thiệu <b>Phần ${pt.part_no}</b>?">Mở Phần ${pt.part_no}</button>`).join('')}
-        <button class="btn btn-ghost" data-act="final_teams" data-arg="0" data-confirm="Sang <b>công bố điểm đội</b>?">Công bố đội</button>
+        ${sbtn('P1: Bốc thăm', 'intro_open', { cls: 'btn-ghost', block: false, xl: false, confirm: 'Mở <b>bốc thăm Phần 1</b>?' })}
+        ${parts.map((pt) => `<button class="btn btn-ghost" data-act="open_part" data-arg="${pt.part_no}" data-confirm="Mở màn giới thiệu <b>Vòng ${pt.part_no}</b>?">Mở Vòng ${pt.part_no}</button>`).join('')}
         <button class="btn btn-ghost" data-act="final_top10" data-arg="0" data-confirm="Sang <b>công bố Top 10</b>?">Công bố Top 10</button>
         <button class="btn btn-ghost" data-act="final_board" data-confirm="Sang <b>bảng tổng sắp</b>?">Bảng tổng sắp</button>
         <button class="btn btn-ghost" data-act="final_congrats" data-confirm="Sang <b>chúc mừng Top 3</b>?">Chúc mừng Top 3</button>
+        ${sbtn('P3: Bốc thăm', 'speech_open', { cls: 'btn-ghost', block: false, xl: false, confirm: 'Mở <b>bốc thăm Phần 3</b>?' })}
+        ${sbtn('Trao giải đội', 'award_teams', { arg: 0, cls: 'btn-ghost', block: false, xl: false, confirm: 'Sang <b>trao giải đồng đội</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' })}
+        ${sbtn('Trao giải cá nhân', 'award_individual', { arg: 0, cls: 'btn-ghost', block: false, xl: false, confirm: 'Sang <b>trao giải cá nhân</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' })}
+        ${sbtn('KQ chung cuộc', 'award_summary', { cls: 'btn-ghost', block: false, xl: false, confirm: 'Sang <b>màn kết quả chung cuộc</b>?' })}
       </div>
     </div>
     <div class="card"><div class="h-part-title">Chạy thử / làm lại</div>
@@ -363,7 +512,7 @@ function moreTab() {
       <button class="btn btn-danger btn-block" id="reset-all">Xoá kết quả + đăng xuất tất cả</button>
     </div>
     <div class="card">
-      <div class="muted small">Link màn chiếu: <b>…/SmartBanker/#view</b> · Link MC: <b>…/SmartBanker/#host</b></div>
+      <div class="muted small">Màn chiếu: <b>…/SmartBanker/#view</b> · MC: <b>…/SmartBanker/#host</b> · Thư ký: <b>…/SmartBanker/#thuky</b></div>
       <button class="btn btn-ghost btn-block" id="logout">Đăng xuất MC</button>
     </div>`;
 }
@@ -372,6 +521,18 @@ function tick() {
   const s = game.state;
   if (!s) return;
   if (keyFor() !== lastKey) { render(); return; }
+  if (s.phase === 'intro_perf' || s.phase === 'speech_perf') {
+    const el = root.querySelector('#h-perf-time');
+    if (el) {
+      const t = perfTiming(s.payload);
+      const lbl = { idle: 'Chưa bấm giờ', prep: 'Chuẩn bị', prep_over: 'Hết giờ chuẩn bị', run: 'Còn lại', over: 'QUÁ GIỜ', stopped: 'Đã dừng' }[t.mode];
+      const val = t.mode === 'over' || t.mode === 'prep_over' ? '+' + fmtOver(t.overMs)
+        : t.mode === 'stopped' ? fmtOver(t.elapsedMs) + (t.overMs > 0 ? ` (quá ${fmtOver(t.overMs)})` : '')
+          : t.mode === 'idle' ? '' : fmtClock(t.remainingMs);
+      el.className = 'h-bigtime mode-' + t.mode;
+      el.innerHTML = `<small>${lbl}</small>${val}`;
+    }
+  }
   if (s.phase === 'options') {
     const el = root.querySelector('#h-timer');
     if (el) {

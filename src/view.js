@@ -2,6 +2,7 @@ import QRCode from 'qrcode';
 import {
   rpc, errText, esc, fmtSec, fmtScore, LETTERS, TEAM_CLASS, logoHtml, BASE_URL, toast,
   game, onState, startStateSync, optionsTiming, top10Auto, serverNow, loadParts, partTopic,
+  perfTiming, fmtClock, fmtOver, isRevealed, isDrawing,
 } from './lib.js';
 import * as snd from './sound.js';
 import { exportExcel } from './export.js';
@@ -21,6 +22,9 @@ let snd_revealed = -1;
 let snd_stage = '';
 let snd_sec = -1;
 let snd_top10 = -1;
+let snd_draw = '';
+let snd_perf = '';
+let snd_perfSec = -1;
 let finalizing = false;
 let lastFinalizeTry = 0;
 
@@ -181,6 +185,14 @@ function keyFor(s) {
     k += ':' + top10Auto(s.payload).shown + ':' + (suspenseActive(`final_top10:${s.payload.step}`) ? 's' : '');
   }
   if (s.phase === 'final_teams') k += ':' + (suspenseActive(`final_teams:${s.payload.step}`) ? 's' : '');
+  if (s.phase === 'award_teams' || s.phase === 'award_individual') k += ':' + (suspenseActive(`${s.phase}:${s.payload.step}`) ? 's' : '');
+  if (s.phase === 'intro_draw' || s.phase === 'speech_draw') {
+    k += ':' + (s.payload.entries || []).map((e) => (isRevealed(e) ? 'r' : isDrawing(e) ? 'd' : '-')).join('');
+  }
+  if (s.phase === 'intro_perf' || s.phase === 'speech_perf') {
+    const p = s.payload;
+    k += ':' + perfTiming(p).mode + ':' + (p.question ? (serverNow() >= p.question_reveal_at ? 'Q' : 'q') : '');
+  }
   return k;
 }
 
@@ -188,7 +200,7 @@ function render() {
   const s = game.state;
   const stage = root.querySelector('#stage');
   if (!stage) return;
-  if (s?.phase === 'final_teams' || s?.phase === 'final_top10') trackStep(s.phase, s.payload.step ?? 0);
+  if (['final_teams', 'final_top10', 'award_teams', 'award_individual'].includes(s?.phase)) trackStep(s.phase, s.payload.step ?? 0);
   const k = keyFor(s);
   if (k === lastKey) return;
   lastKey = k;
@@ -205,14 +217,16 @@ function render() {
 
 function onPhaseEnter(s) {
   if (!s) return;
-  snd_revealed = -1; snd_stage = ''; snd_sec = -1; snd_top10 = -1;
+  snd_revealed = -1; snd_stage = ''; snd_sec = -1; snd_top10 = -1; snd_draw = ''; snd_perf = ''; snd_perfSec = -1;
   finalizing = false;
   switch (s.phase) {
     case 'question': snd.playQuestion(); break;
     case 'result': snd.playCorrect(); break;
     case 'part_intro': case 'part_end': snd.playStinger(); break;
     case 'final_teams': case 'final_top10': snd.playStinger(); break;
-    case 'final_board': case 'final_congrats': snd.playFanfare(); break;
+    case 'final_board': case 'final_congrats': case 'award_summary': snd.playFanfare(); break;
+    case 'intro_draw': case 'speech_draw': case 'intro_perf': case 'speech_perf':
+    case 'award_teams': case 'award_individual': snd.playStinger(); break;
     default: break;
   }
 }
@@ -231,6 +245,11 @@ function body(s) {
     case 'final_top10': return finalTop10(p);
     case 'final_board': return finalBoard(p);
     case 'final_congrats': return congrats(p);
+    case 'intro_draw': case 'speech_draw': return drawView(s, p);
+    case 'intro_perf': case 'speech_perf': return perfView(s, p);
+    case 'award_teams': return awardPodium(s.phase, p.step || 0, p.teams || [], 'GIẢI ĐỒNG ĐỘI', teamAwardCard);
+    case 'award_individual': return awardPodium(s.phase, p.step || 0, p.people || [], 'GIẢI CÁ NHÂN', personAwardCard);
+    case 'award_summary': return awardSummary(p);
     default: return '';
   }
 }
@@ -285,7 +304,8 @@ function partIntro(s, p) {
   const hasScore = (p.totals || []).some((t) => Number(t.total) > 0);
   return `
     <div class="v-part">
-      <div class="part-num">PHẦN ${s.part_no}</div>
+      <div class="part-eyebrow">PHẦN 2 · THI KIẾN THỨC</div>
+      <div class="part-num">VÒNG ${s.part_no}</div>
       <div class="part-name">${esc(p.part_name)}</div>
       ${partTopic(s.part_no) ? `<div class="part-topic">Chủ đề: ${esc(partTopic(s.part_no))}</div>` : ''}
       <div class="part-meta">${p.q_count} câu hỏi</div>
@@ -294,7 +314,7 @@ function partIntro(s, p) {
 }
 
 function qBadge(s, p) {
-  return `<div class="q-badge"><span>Phần ${s.part_no} · ${esc(p.part_name)}</span><b>Câu ${p.idx}/${p.q_count}</b></div>`;
+  return `<div class="q-badge"><span>Vòng ${s.part_no} · ${esc(p.part_name)}</span><b>Câu ${p.idx}/${p.q_count}</b></div>`;
 }
 
 function questionView(s, p, withOptions) {
@@ -355,10 +375,10 @@ function resultView(s, p) {
 function partEnd(s, p) {
   return `
     <div class="v-part">
-      <div class="part-num sm">KẾT THÚC PHẦN ${s.part_no}</div>
+      <div class="part-num sm">KẾT THÚC VÒNG ${s.part_no}</div>
       <div class="part-name md">${esc(p.part_name)}</div>
       <div class="part-totals wide"><div class="sec-title">Bảng điểm đồng đội</div>${totalsBars(p.totals)}</div>
-      <div class="part-meta">${p.next_part ? `Tiếp theo: Phần ${p.next_part} — ${esc(p.next_part_name)}` : 'Chuẩn bị công bố kết quả chung cuộc!'}</div>
+      <div class="part-meta">${p.next_part ? `Tiếp theo: Vòng ${p.next_part} — ${esc(p.next_part_name)}` : 'Chuẩn bị công bố Top 10 cá nhân!'}</div>
     </div>`;
 }
 
@@ -476,6 +496,157 @@ function congrats(p) {
     </div>`;
 }
 
+// ================= PHẦN 1 (Giới thiệu) & PHẦN 3 (Hùng biện) =================
+const STAGE_TITLE = { intro: 'PHẦN 1 · GIỚI THIỆU ĐỘI THI', speech: 'PHẦN 3 · HÙNG BIỆN' };
+
+function drawView(s, p) {
+  const stage = p.stage;
+  const entries = p.entries || [];
+  const allDone = entries.length > 0 && entries.every((e) => isRevealed(e));
+  const cards = entries.map((e) => {
+    const rev = isRevealed(e);
+    const drawing = isDrawing(e);
+    const who = stage === 'intro'
+      ? `<div class="dc-sub">Đội trưởng: ${e.captain_name ? esc(e.captain_name) : '<i>chưa chỉ định</i>'}</div>`
+      : `<div class="dc-sub">${esc(e.team_name)}</div>`;
+    return `
+      <div class="draw-card ${TEAM_CLASS[e.team_id]} ${rev ? 'revealed' : drawing ? 'drawing' : ''}">
+        <div class="dc-name">${esc(e.name)}</div>
+        ${who}
+        <div class="dc-slot"><span class="dc-num" data-spin="${drawing ? 1 : 0}">${rev ? e.order_no : drawing ? '1' : '?'}</span></div>
+        <div class="dc-state">${rev ? `Thi lượt thứ ${e.order_no}` : drawing ? 'Đang bốc thăm…' : 'Chờ bốc thăm'}</div>
+      </div>`;
+  }).join('');
+  const order = allDone
+    ? `<div class="draw-order">${entries.slice().sort((a, b) => a.order_no - b.order_no)
+      .map((e) => `<span class="${TEAM_CLASS[e.team_id]}"><b>${e.order_no}</b>${esc(e.name)}</span>`).join('<i>→</i>')}</div>`
+    : `<div class="draw-hint">${stage === 'intro' ? 'Mời đội trưởng các đội bấm <b>BỐC THĂM</b> trên điện thoại' : 'Mời 3 thí sinh bấm <b>BỐC THĂM</b> trên điện thoại'}</div>`;
+  return `
+    <div class="v-draw">
+      <div class="stage-eyebrow">${STAGE_TITLE[stage]}</div>
+      <div class="final-title">BỐC THĂM THỨ TỰ THI</div>
+      <div class="draw-grid">${cards}</div>
+      ${order}
+    </div>`;
+}
+
+function perfView(s, p) {
+  const stage = p.stage;
+  const t = perfTiming(p);
+  const now = serverNow();
+  let question = '';
+  if (stage === 'speech') {
+    if (!p.question) question = `<div class="sp-q waiting">Mời thí sinh bấm <b>BỐC THĂM CÂU HỎI</b> trên điện thoại<small>Còn ${p.questions_left} câu hỏi</small></div>`;
+    else if (now < p.question_reveal_at) question = `<div class="sp-q drawing"><span class="dc-num" data-spin="6">1</span><small>Đang bốc thăm câu hỏi…</small></div>`;
+    else question = `<div class="sp-q"><div class="sp-q-lbl">Câu hỏi số ${p.question.id}</div>${esc(p.question.text)}</div>`;
+  }
+  const label = {
+    idle: stage === 'speech' ? 'Chuẩn bị' : 'Thời gian giới thiệu',
+    prep: 'Thời gian chuẩn bị',
+    prep_over: 'Hết giờ chuẩn bị',
+    run: stage === 'speech' ? 'Thời gian trình bày' : 'Thời gian giới thiệu',
+    over: 'QUÁ GIỜ',
+    stopped: 'Kết thúc',
+  }[t.mode];
+  return `
+    <div class="v-perf ${stage}">
+      <div class="stage-eyebrow">${STAGE_TITLE[stage]} · Lượt ${p.order_no ?? '–'}/${p.total}</div>
+      <div class="perf-who ${TEAM_CLASS[p.team_id]}">
+        <div class="pw-name">${esc(p.name)}</div>
+        ${stage === 'speech' ? `<div class="pw-team">${esc(p.team_name)}</div>` : ''}
+      </div>
+      ${question}
+      <div class="perf-clock mode-${t.mode}" id="pclock">
+        <div class="pc-label">${label}</div>
+        <div class="pc-time" id="pc-time"></div>
+        <div class="pc-bar"><div id="pc-bar"></div></div>
+        <div class="pc-note" id="pc-note"></div>
+      </div>
+    </div>`;
+}
+
+function paintPerf(p) {
+  const t = perfTiming(p);
+  const time = root.querySelector('#pc-time');
+  if (!time) return;
+  const bar = root.querySelector('#pc-bar');
+  const note = root.querySelector('#pc-note');
+  const clock = root.querySelector('#pclock');
+  if (t.mode === 'over' || t.mode === 'prep_over') time.textContent = '+' + fmtOver(t.overMs);
+  else if (t.mode === 'stopped') time.textContent = fmtOver(t.elapsedMs);
+  else time.textContent = fmtClock(t.remainingMs);
+  bar.style.width = (t.mode === 'idle' ? 100 : (t.remainingMs / Math.max(1, t.totalMs)) * 100).toFixed(1) + '%';
+  clock.classList.toggle('urgent', (t.mode === 'run' || t.mode === 'prep') && t.remainingMs <= 10000);
+  if (t.mode === 'stopped') note.textContent = t.overMs > 0 ? `Quá giờ ${fmtOver(t.overMs)}` : 'Trong thời gian quy định';
+  else if (t.mode === 'idle') {
+    note.textContent = p.stage === 'speech'
+      ? `Chuẩn bị ${fmtClock(p.prep_s * 1000)} · Trình bày ${fmtClock(p.duration_s * 1000)}`
+      : `Tối đa ${fmtClock(p.duration_s * 1000)}`;
+  } else if (t.mode === 'prep_over') note.textContent = 'Mời thí sinh bắt đầu trình bày';
+  else note.textContent = '';
+}
+
+// Số quay khi đang bốc thăm
+function spinNumbers(max) {
+  root.querySelectorAll('.dc-num[data-spin]').forEach((el) => {
+    const m = Number(el.dataset.spin);
+    if (m) el.textContent = 1 + Math.floor(Math.random() * (m === 1 ? max : m));
+  });
+}
+
+function teamAwardCard(t) {
+  return `<div class="pc-name">${esc(t.name)}</div><div class="pc-score">${fmtScore(t.total)}</div><div class="pc-lbl">điểm</div>
+    <div class="pc-break">Giới thiệu ${fmtScore(t.intro_avg)} + Kiến thức ${fmtScore(t.quiz_total)}</div>`;
+}
+function personAwardCard(r) {
+  return `<div class="pc-name sm">${esc(r.name)}</div><div class="pc-team">${esc(r.team_name)}</div>
+    <div class="pc-score">${fmtScore(r.total)}</div><div class="pc-lbl">điểm</div>
+    <div class="pc-break">Kiến thức ${fmtScore(r.quiz_score)} + Hùng biện ${fmtScore(r.speech_avg)}</div>`;
+}
+
+// items sắp theo hạng giảm dần: [hạng 3, hạng 2, hạng 1]
+function awardPodium(phase, step, items, title, cardFn) {
+  const sus = suspenseActive(`${phase}:${step}`);
+  const slot = (idx, rankNo) => {
+    const it = items[idx];
+    if (!it) return `<div class="podium-col rank-${rankNo}"></div>`;
+    const revealed = idx < step && !(sus && idx === step - 1);
+    const pending = sus && idx === step - 1;
+    return `
+      <div class="podium-col rank-${rankNo} ${revealed ? 'revealed ' + TEAM_CLASS[it.team_id ?? it.id] : ''} ${pending ? 'pending' : ''}">
+        <div class="podium-card">${revealed ? cardFn(it) : `<div class="pc-q">?</div>`}</div>
+        <div class="podium-base"><span>${rankNo === 1 ? '🏆 GIẢI NHẤT' : rankNo === 2 ? 'GIẢI NHÌ' : 'GIẢI BA'}</span></div>
+      </div>`;
+  };
+  return `
+    <div class="v-final award">
+      <div class="stage-eyebrow">TRAO GIẢI</div>
+      <div class="final-title">${title}</div>
+      <div class="podium">${slot(1, 2)}${slot(2, 1)}${slot(0, 3)}</div>
+    </div>`;
+}
+
+function awardSummary(p) {
+  const medal = ['🥇', '🥈', '🥉'];
+  const confetti = Array.from({ length: 60 }, (_, i) =>
+    `<i style="--x:${Math.random() * 100}%;--d:${(Math.random() * 4).toFixed(2)}s;--t:${(4 + Math.random() * 3).toFixed(2)}s;--c:${['#FBBA20', '#ffffff', '#3FD0C0', '#FF8A65'][i % 4]};--r:${Math.floor(Math.random() * 360)}deg"></i>`).join('');
+  const row = (m, name, sub, total, tid) => `
+    <div class="sum-row ${TEAM_CLASS[tid]}"><span class="sum-medal">${m}</span>
+      <div class="sum-info"><div class="sum-name">${esc(name)}</div>${sub ? `<div class="sum-sub">${esc(sub)}</div>` : ''}</div>
+      <b class="sum-total">${fmtScore(total)}</b></div>`;
+  return `
+    <div class="v-summary">
+      <div class="confetti">${confetti}</div>
+      <div class="final-title">KẾT QUẢ CHUNG CUỘC</div>
+      <div class="sum-grid">
+        <div class="sum-col"><div class="sec-title">Giải đồng đội</div>
+          ${(p.teams || []).slice(0, 3).map((t, i) => row(medal[i], t.name, '', t.total, t.id)).join('')}</div>
+        <div class="sum-col"><div class="sec-title">Giải cá nhân</div>
+          ${(p.people || []).slice(0, 3).map((r, i) => row(medal[i], r.name, r.team_name, r.total, r.team_id)).join('')}</div>
+      </div>
+    </div>`;
+}
+
 // ---------------- Cập nhật theo thời gian + âm thanh ----------------
 function tick() {
   const s = game.state;
@@ -525,6 +696,48 @@ function tick() {
       rpc('host_action', { p_secret: secret, p_action: 'finalize', p_arg: 0 })
         .catch((err) => { if (!/SAI_BUOC/.test(err?.message)) toast(errText(err), 'error'); })
         .finally(() => { finalizing = false; });
+    }
+  }
+
+  if (s.phase === 'intro_draw' || s.phase === 'speech_draw') {
+    const entries = s.payload.entries || [];
+    spinNumbers(entries.length || 3);
+    const sig = entries.map((e) => (isRevealed(e) ? 'r' : isDrawing(e) ? 'd' : '-')).join('');
+    if (sig !== snd_draw) {
+      if (snd_draw) {
+        entries.forEach((e, i) => {
+          if (sig[i] === 'd' && snd_draw[i] === '-') snd.playDrumroll(Math.max(1, (e.reveal_at - serverNow()) / 1000));
+          if (sig[i] === 'r' && snd_draw[i] !== 'r') snd.playCorrect();
+        });
+        if (!/[-d]/.test(sig) && /[-d]/.test(snd_draw)) setTimeout(() => snd.playFanfare(), 600);
+      }
+      snd_draw = sig;
+    }
+  }
+
+  if (s.phase === 'intro_perf' || s.phase === 'speech_perf') {
+    const p = s.payload;
+    const t = perfTiming(p);
+    paintPerf(p);
+    if (p.question && serverNow() < p.question_reveal_at) spinNumbers(6);
+    const qsig = p.question ? (serverNow() >= p.question_reveal_at ? 'Q' : 'q') : '';
+    const cur = `${t.mode}|${qsig}`;
+    if (cur !== snd_perf) {
+      if (snd_perf) {
+        const [pm, pq] = snd_perf.split('|');
+        if ((t.mode === 'run' && pm !== 'run') || (t.mode === 'prep' && pm !== 'prep')) snd.playGo();
+        if ((t.mode === 'over' && pm === 'run') || (t.mode === 'prep_over' && pm === 'prep')) snd.playTimeUp();
+        if (qsig === 'q' && pq !== 'q') snd.playDrumroll(Math.max(1, (p.question_reveal_at - serverNow()) / 1000));
+        if (qsig === 'Q' && pq === 'q') snd.playCorrect();
+      }
+      snd_perf = cur;
+    }
+    if (t.mode === 'run' || t.mode === 'prep') {
+      const sec = Math.ceil(t.remainingMs / 1000);
+      if (sec !== snd_perfSec) {
+        if (snd_perfSec !== -1 && sec > 0 && sec <= 10) snd.playTick(sec <= 5);
+        snd_perfSec = sec;
+      }
     }
   }
 
