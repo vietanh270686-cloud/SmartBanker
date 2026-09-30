@@ -540,3 +540,5 @@ body.mode-view {
 .sec-save.err { color: var(--bad); }
 .sec-avg { margin-top: 10px; font-size: 14px; }
 .sec-avg b { font-size: 18px; color: var(--teal); }
+.sec-missing { font-size: 12px; font-weight: 700; color: var(--bad); margin-top: 4px; }
+.sec-missing:empty { display: none; }

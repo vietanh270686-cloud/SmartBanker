@@ -191,9 +191,10 @@ export function esc(s) {
 }
 
 export const fmtSec = (ms) => (Number(ms || 0) / 1000).toFixed(2).replace('.', ',') + 's';
+// Tối đa 3 chữ số thập phân, bỏ số 0 thừa (36,625 · 7,33 · 40)
 export const fmtScore = (n) => {
-  const v = Number(n || 0);
-  return Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', ',');
+  const v = Math.round(Number(n || 0) * 1000) / 1000;
+  return String(v).replace('.', ',');
 };
 
 export const LETTERS = ['A', 'B', 'C', 'D'];
