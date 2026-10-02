@@ -17,6 +17,54 @@ export function unlockAudio() {
 export function setMuted(m) {
   muted = m;
   if (master) master.gain.value = m ? 0 : 0.9;
+  if (current) current.volume = m ? 0 : currentVol;
+}
+
+// ---------------- Nhạc từ file mp3 (public/sounds/<tên>.mp3) ----------------
+// Không có file thì tự dùng âm thanh tổng hợp (fallback)
+const music = {};
+let current = null;
+let currentVol = 0.9;
+let fadeTimer = null;
+
+export function preloadMusic(names) {
+  names.forEach((n) => {
+    if (music[n]) return;
+    const a = new Audio(`${import.meta.env.BASE_URL}sounds/${n}.mp3`);
+    a.preload = 'auto';
+    a.addEventListener('canplaythrough', () => { a.dataset.ok = '1'; });
+    a.addEventListener('error', () => { a.dataset.ok = '0'; });
+    a.load();
+    music[n] = a;
+  });
+}
+
+export function playMusic(name, { loop = false, volume = 0.9, fallback = null } = {}) {
+  const a = music[name];
+  if (!a || a.dataset.ok !== '1') { fallback?.(); return; }
+  clearInterval(fadeTimer);
+  if (current && current !== a) current.pause();
+  current = a;
+  currentVol = volume;
+  a.loop = loop;
+  a.currentTime = 0;
+  a.volume = muted ? 0 : volume;
+  a.play().catch(() => fallback?.());
+}
+
+export function stopMusic(ms = 600) {
+  const a = current;
+  if (!a || a.paused) return;
+  clearInterval(fadeTimer);
+  if (ms <= 0) { a.pause(); return; }
+  const steps = 15;
+  const dv = a.volume / steps;
+  let i = 0;
+  fadeTimer = setInterval(() => {
+    i += 1;
+    a.volume = Math.max(0, a.volume - dv);
+    if (i >= steps) { clearInterval(fadeTimer); a.pause(); }
+  }, ms / steps);
 }
 export const isMuted = () => muted;
 

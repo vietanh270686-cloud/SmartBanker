@@ -89,6 +89,7 @@ function showStartOverlay() {
     </div>`;
   root.querySelector('#go').addEventListener('click', () => {
     snd.unlockAudio();
+    snd.preloadMusic(['award']);
     document.documentElement.requestFullscreen?.().catch(() => {});
     start();
   });
@@ -175,7 +176,8 @@ function trackStep(phase, step) {
   const prev = seenStep[phase];
   seenStep[phase] = step;
   if (prev != null && step > prev) {
-    suspense = { sig: `${phase}:${step}`, until: Date.now() + SUSPENSE_MS, fanfare: true };
+    suspense = { sig: `${phase}:${step}`, until: Date.now() + SUSPENSE_MS, fanfare: true, phase };
+    snd.stopMusic(300);
     snd.playDrumroll(SUSPENSE_MS / 1000);
   }
 }
@@ -221,13 +223,15 @@ function render() {
 function onPhaseEnter(s) {
   if (!s) return;
   snd_revealed = -1; snd_stage = ''; snd_sec = -1; snd_top10 = -1; snd_draw = ''; snd_perf = ''; snd_perfSec = -1;
+  snd.stopMusic(800);
   finalizing = false;
   switch (s.phase) {
     case 'question': snd.playQuestion(); break;
     case 'result': snd.playCorrect(); break;
     case 'part_intro': case 'part_end': snd.playStinger(); break;
     case 'final_teams': case 'final_top10': snd.playStinger(); break;
-    case 'final_board': case 'final_congrats': case 'award_summary': snd.playFanfare(); break;
+    case 'final_board': snd.playFanfare(); break;
+    case 'final_congrats': case 'award_summary': snd.playMusic('award', { loop: true, fallback: snd.playFanfare }); break;
     case 'intro_draw': case 'speech_draw': case 'intro_perf': case 'speech_perf':
     case 'award_teams': case 'award_individual': snd.playStinger(); break;
     default: break;
@@ -658,7 +662,9 @@ function tick() {
 
   if (suspense && Date.now() >= suspense.until && suspense.fanfare) {
     suspense.fanfare = false;
-    snd.playFanfare();
+    // trao giải: phát nhạc trao giải sau mỗi lần công bố (không có file nhạc thì dùng kèn tổng hợp)
+    if (suspense.phase?.startsWith('award')) snd.playMusic('award', { fallback: snd.playFanfare });
+    else snd.playFanfare();
   }
 
   if (s.phase === 'options') {
