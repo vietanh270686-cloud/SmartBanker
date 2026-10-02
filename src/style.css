@@ -562,3 +562,13 @@ body.mode-view {
 .v-perf.speech .perf-who .pw-name { font-size: 3.2vw; }
 .v-perf.speech .pc-time { font-size: 8vw; }
 .p-speech-title { display: block; color: var(--teal); font-size: 19px; margin-bottom: 6px; }
+
+/* Lời dẫn MC */
+.mc-script { border-left: 5px solid var(--gold); }
+.mc-script-title { font-size: 12px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--gold-600); margin-bottom: 6px; }
+.mc-script h4 { margin: 14px 0 6px; font-size: 15px; color: var(--teal-700); }
+.mc-script h4:first-of-type { margin-top: 2px; }
+.mc-script p { margin: 0 0 9px; font-size: 16.5px; line-height: 1.5; color: var(--ink); }
+.mc-script p.cue { background: #fff6dc; border-radius: 8px; padding: 8px 10px; font-weight: 800; color: var(--teal-900); }
+.mc-script p.note { font-size: 13px; font-style: italic; color: var(--muted); }
+.mc-script .blank { color: var(--muted); letter-spacing: 1px; }

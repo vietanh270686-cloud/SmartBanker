@@ -5,6 +5,7 @@ import {
 } from './lib.js';
 import { exportExcel } from './export.js';
 import { openReport } from './report.js';
+import { scriptFor } from './script.js';
 
 const KEY = 'sb_host_secret';
 let root;
@@ -340,6 +341,11 @@ function currentQuestionCard(s) {
   </div>`;
 }
 
+function mcScript(s) {
+  const html = scriptFor(s);
+  return html ? `<div class="card mc-script"><div class="mc-script-title">📜 Lời dẫn MC</div>${html}</div>` : '';
+}
+
 function musicButtons() {
   return `<div class="grid2 music-btns">
     <button class="btn btn-ghost" data-music="music_stop">🔉 Dừng nhạc (nhỏ dần)</button>
@@ -461,6 +467,7 @@ function controlTab() {
   return `
     <div class="card h-status">${status}</div>
     <div class="h-primary">${main}</div>
+    ${mcScript(s)}
     ${extra}
     ${rerun}`;
 }
