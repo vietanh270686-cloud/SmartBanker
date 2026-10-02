@@ -309,7 +309,7 @@ function perfControl(s, p) {
       main = `<button class="btn btn-primary btn-block btn-xl" data-act="open_part" data-arg="${firstPart()}"
         data-confirm="Kết thúc Phần 1, sang <b>Phần 2 – Vòng 1</b>?" ${busy ? 'disabled' : ''}>▶ Sang Phần 2 – Vòng 1</button>`;
     } else {
-      main = sbtn('🏆 Sang trao giải', 'award_teams', { arg: 0, cls: 'btn-gold', confirm: 'Kết thúc Hùng biện, sang <b>trao giải</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' });
+      main = sbtn('🏆 Sang trao giải', 'award_individual', { arg: 0, cls: 'btn-gold', confirm: 'Kết thúc Hùng biện, sang <b>trao giải</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' });
     }
   }
   if (t.mode !== 'idle') extra += sbtn('↻ Bấm giờ lại từ đầu', 'timer_reset', { cls: 'btn-ghost', xl: false, confirm: 'Xoá thời gian đã bấm của lượt này và <b>bấm lại từ đầu</b>?' });
@@ -358,8 +358,8 @@ function controlTab() {
       status += `<div class="h-sub">Đã công bố ${step}/3 giải ${kind}</div>`;
       main = step < 3
         ? sbtn(`🥁 Công bố Giải ${RANK_NAME[step]} ${kind}`, s.phase, { arg: step + 1, cls: 'btn-gold' })
-        : s.phase === 'award_teams'
-          ? sbtn('▶ Sang giải cá nhân', 'award_individual', { arg: 0, confirm: 'Chuyển sang <b>trao giải cá nhân</b>?' })
+        : s.phase === 'award_individual'
+          ? sbtn('▶ Sang giải đồng đội', 'award_teams', { arg: 0, confirm: 'Chuyển sang <b>trao giải đồng đội</b>?' })
           : sbtn('🎉 Màn hình kết quả chung cuộc', 'award_summary', { cls: 'btn-gold' });
       const items = s.phase === 'award_teams' ? p.teams : p.people;
       extra = `<div class="card h-res">${(items || []).slice().reverse().map((it) => `
@@ -370,7 +370,7 @@ function controlTab() {
     }
     case 'award_summary':
       status += `<div class="h-sub">Kết thúc chương trình 🎉</div>`;
-      main = sbtn('↩ Quay lại giải cá nhân', 'award_individual', { arg: 3, cls: 'btn-ghost' });
+      main = sbtn('↩ Quay lại giải đồng đội', 'award_teams', { arg: 3, cls: 'btn-ghost' });
       break;
     case 'part_intro':
       status += `<div class="h-sub">Vòng ${s.part_no}: ${esc(p.part_name)}</div>`
@@ -506,8 +506,8 @@ function moreTab() {
         <button class="btn btn-ghost" data-act="final_board" data-confirm="Sang <b>bảng tổng sắp</b>?">Bảng tổng sắp</button>
         <button class="btn btn-ghost" data-act="final_congrats" data-confirm="Sang <b>chúc mừng Top 3</b>?">Chúc mừng Top 3</button>
         ${sbtn('P3: Bốc thăm', 'speech_open', { cls: 'btn-ghost', block: false, xl: false, confirm: 'Mở <b>bốc thăm Phần 3</b>?' })}
-        ${sbtn('Trao giải đội', 'award_teams', { arg: 0, cls: 'btn-ghost', block: false, xl: false, confirm: 'Sang <b>trao giải đồng đội</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' })}
         ${sbtn('Trao giải cá nhân', 'award_individual', { arg: 0, cls: 'btn-ghost', block: false, xl: false, confirm: 'Sang <b>trao giải cá nhân</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' })}
+        ${sbtn('Trao giải đội', 'award_teams', { arg: 0, cls: 'btn-ghost', block: false, xl: false, confirm: 'Sang <b>trao giải đồng đội</b>?<br><small>Điểm BGK sẽ bị khoá.</small>' })}
         ${sbtn('KQ chung cuộc', 'award_summary', { cls: 'btn-ghost', block: false, xl: false, confirm: 'Sang <b>màn kết quả chung cuộc</b>?' })}
       </div>
     </div>

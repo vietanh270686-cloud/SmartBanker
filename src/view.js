@@ -642,10 +642,10 @@ function awardSummary(p) {
       <div class="confetti">${confetti}</div>
       <div class="final-title">KẾT QUẢ CHUNG CUỘC</div>
       <div class="sum-grid">
-        <div class="sum-col"><div class="sec-title">Giải đồng đội</div>
-          ${(p.teams || []).slice(0, 3).map((t, i) => row(medal[i], t.name, '', t.total, t.id)).join('')}</div>
         <div class="sum-col"><div class="sec-title">Giải cá nhân</div>
           ${(p.people || []).slice(0, 3).map((r, i) => row(medal[i], r.name, r.team_name, r.total, r.team_id)).join('')}</div>
+        <div class="sum-col"><div class="sec-title">Giải đồng đội</div>
+          ${(p.teams || []).slice(0, 3).map((t, i) => row(medal[i], t.name, '', t.total, t.id)).join('')}</div>
       </div>
     </div>`;
 }
