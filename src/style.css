@@ -553,3 +553,12 @@ body.mode-view {
 .v-result.opts-long .res-opt { font-size: 1.45vw; padding: 1.3vh 1vw; }
 .v-result.opts-xlong .res-opt { font-size: 1.32vw; padding: 1.2vh 1vw; line-height: 1.25; }
 .v-result.q-long .q-text.sm { font-size: 1.6vw; }
+
+/* Câu hỏi hùng biện: tiêu đề + nội dung */
+.sp-q-title { font-size: 2.6vw; font-weight: 900; color: var(--gold); margin-bottom: 1vh; line-height: 1.2; }
+.v-perf.speech .sp-q { font-size: 1.85vw; font-weight: 600; text-align: left; }
+.v-perf.speech .sp-q .sp-q-lbl, .v-perf.speech .sp-q .sp-q-title { text-align: center; }
+.v-perf.speech { gap: 1.8vh; }
+.v-perf.speech .perf-who .pw-name { font-size: 3.2vw; }
+.v-perf.speech .pc-time { font-size: 8vw; }
+.p-speech-title { display: block; color: var(--teal); font-size: 19px; margin-bottom: 6px; }

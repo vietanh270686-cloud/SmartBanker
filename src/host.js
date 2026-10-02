@@ -321,7 +321,8 @@ function perfControl(s, p) {
   }
   if (t.mode !== 'idle') extra += sbtn('↻ Bấm giờ lại từ đầu', 'timer_reset', { cls: 'btn-ghost', xl: false, confirm: 'Xoá thời gian đã bấm của lượt này và <b>bấm lại từ đầu</b>?' });
   if (stage === 'speech' && p.question) extra += sbtn('🎲 Bốc lại câu hỏi', 'redraw_question', { cls: 'btn-ghost', xl: false, confirm: 'Huỷ câu hỏi đã bốc và cho thí sinh <b>bốc lại</b>?' });
-  const q = stage === 'speech' && p.question ? `<div class="card h-qcard"><div class="h-qmeta">Câu hỏi hùng biện số ${p.question.id}</div><div class="h-qtext">${esc(p.question.text)}</div></div>` : '';
+  const q = stage === 'speech' && p.question ? `<div class="card h-qcard"><div class="h-qmeta">Câu hỏi hùng biện số ${p.question.id}</div>
+    ${p.question.title ? `<div class="h-qtext">“${esc(p.question.title)}”</div>` : ''}<div>${esc(p.question.text)}</div></div>` : '';
   return {
     status: `<div class="h-sub">Lượt ${p.order_no}/${p.total}: ${esc(p.name)}</div><div class="h-bigtime" id="h-perf-time"></div>`,
     main,
@@ -501,7 +502,7 @@ function questionsTab() {
     </div>`).join('') + `
     <div class="card">
       <div class="h-part-title">Câu hỏi Hùng biện (${(overview.speech_questions || []).length})</div>
-      ${(overview.speech_questions || []).map((x) => `<div class="h-q-row"><span class="h-q-no">${x.id}</span><div class="h-q-body">${esc(x.text)}</div></div>`).join('')}
+      ${(overview.speech_questions || []).map((x) => `<div class="h-q-row"><span class="h-q-no">${x.id}</span><div class="h-q-body">${x.title ? `<b>“${esc(x.title)}”</b><br>` : ''}${esc(x.text)}</div></div>`).join('')}
     </div>`;
 }
 

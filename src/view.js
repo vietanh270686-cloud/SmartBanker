@@ -566,7 +566,10 @@ function perfView(s, p) {
   if (stage === 'speech') {
     if (!p.question) question = `<div class="sp-q waiting">Mời thí sinh bấm <b>BỐC THĂM CÂU HỎI</b> trên điện thoại<small>Còn ${p.questions_left} câu hỏi</small></div>`;
     else if (now < p.question_reveal_at) question = `<div class="sp-q drawing"><span class="dc-num" data-spin="6">1</span><small>Đang bốc thăm câu hỏi…</small></div>`;
-    else question = `<div class="sp-q"><div class="sp-q-lbl">Câu hỏi số ${p.question.id}</div>${esc(p.question.text)}</div>`;
+    else {
+      question = `<div class="sp-q"><div class="sp-q-lbl">Câu hỏi số ${p.question.id}</div>
+        ${p.question.title ? `<div class="sp-q-title">“${esc(p.question.title)}”</div>` : ''}${esc(p.question.text)}</div>`;
+    }
   }
   const label = {
     idle: stage === 'speech' ? 'Chuẩn bị' : 'Thời gian giới thiệu',

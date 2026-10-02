@@ -363,7 +363,8 @@ function perfBody(s, p) {
     } else if (serverNow() < p.question_reveal_at) {
       q = `<div class="draw-result spinning"><small>Đang bốc câu hỏi…</small><b>?</b></div>`;
     } else {
-      q = `<div class="card p-speech-q"><span class="lbl">Câu hỏi số ${p.question.id}</span>${esc(p.question.text)}</div>`;
+      q = `<div class="card p-speech-q"><span class="lbl">Câu hỏi số ${p.question.id}</span>
+        ${p.question.title ? `<b class="p-speech-title">“${esc(p.question.title)}”</b>` : ''}${esc(p.question.text)}</div>`;
     }
   }
   const who = p.stage === 'intro'
