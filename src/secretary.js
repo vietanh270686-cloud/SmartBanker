@@ -150,7 +150,7 @@ function structure(rows) {
           <span class="sec-save" data-save="${j}"></span>
         </label>`).join('')}
       </div>
-      <div class="sec-avg">Điểm TB (tổng ÷ 4): <b data-avg>–</b><span data-total></span></div>
+      <div class="sec-avg">Điểm TB giám khảo: <b data-avg>–</b><span data-total></span></div>
       <div class="sec-missing" data-missing></div>
     </div>`).join('');
 }
@@ -169,7 +169,7 @@ function update(main, rows) {
     card.querySelector('[data-avg]').textContent = r.avg != null ? fmtScore(r.avg) : '–';
     const missing = JUDGES.filter((j) => r.scores?.[j - 1] == null);
     card.querySelector('[data-missing]').textContent = missing.length && missing.length < 4
-      ? `⚠ Thiếu điểm GK ${missing.join(', ')} — ô trống đang tính 0 điểm` : '';
+      ? `⚠ Chưa nhập GK ${missing.join(', ')} — điểm TB đang tính trên ${4 - missing.length} giám khảo` : '';
     const extra = tab === 'intro' ? r.quiz_total : r.quiz_score;
     card.querySelector('[data-total]').innerHTML = r.avg != null && extra != null
       ? ` · Tổng: <b>${fmtScore(Number(r.avg) + Number(extra))}</b>` : '';

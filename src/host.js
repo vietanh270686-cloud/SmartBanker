@@ -363,7 +363,7 @@ function controlTab() {
       extra = `<div class="card h-res">${(items || []).slice().reverse().map((it) => `
         <div class="h-res-row ${TEAM_CLASS[it.team_id ?? it.id]}"><b>${it.rank}. ${esc(it.name)}</b><span>${fmtScore(it.total)} điểm</span>
           <span>${s.phase === 'award_teams' ? `GT ${fmtScore(it.intro_avg)} + KT ${fmtScore(it.quiz_total)}` : `KT ${fmtScore(it.quiz_score)} + HB ${fmtScore(it.speech_avg)}`}</span>
-          ${(s.phase === 'award_teams' ? it.intro_n : it.speech_n) < 4 ? `<span class="warn">⚠ mới có ${s.phase === 'award_teams' ? it.intro_n : it.speech_n}/4 điểm GK</span>` : ''}</div>`).join('')}</div>`;
+          ${(s.phase === 'award_teams' ? it.intro_n : it.speech_n) < 4 ? `<span class="warn">⚠ TB tính trên ${s.phase === 'award_teams' ? it.intro_n : it.speech_n}/4 GK</span>` : ''}</div>`).join('')}</div>`;
       break;
     }
     case 'award_summary':
