@@ -39,6 +39,8 @@ export function preloadMusic(names) {
   });
 }
 
+export const musicReady = (name) => music[name]?.dataset.ok === '1';
+
 export function playMusic(name, { loop = false, volume = 0.9, fallback = null } = {}) {
   const a = music[name];
   if (!a || a.dataset.ok !== '1') { fallback?.(); return; }

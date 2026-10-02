@@ -1,7 +1,7 @@
 import {
   rpc, errText, esc, fmtScore, LETTERS, TEAM_CLASS, logoHtml, confirmBox, toast,
   game, onState, startStateSync, fetchState, optionsTiming, top10Auto,
-  perfTiming, fmtClock, fmtOver, isRevealed, isDrawing, serverNow,
+  perfTiming, fmtClock, fmtOver, isRevealed, isDrawing, serverNow, sendControl, controlChannel,
 } from './lib.js';
 import { exportExcel } from './export.js';
 import { openReport } from './report.js';
@@ -70,6 +70,7 @@ async function verify() {
 }
 
 async function start() {
+  controlChannel();
   root.innerHTML = `
     <div class="h-wrap">
       <header class="h-top">
@@ -214,6 +215,12 @@ function wire(main) {
       loadOverview();
     } catch (err) { toast(errText(err), 'error'); }
   }));
+  main.querySelectorAll('[data-music]').forEach((b) => b.addEventListener('click', async () => {
+    try {
+      await sendControl(b.dataset.music);
+      toast(b.dataset.music === 'music_stop' ? 'Đã gửi lệnh dừng nhạc (nhỏ dần)' : 'Đã gửi lệnh phát nhạc', 'ok');
+    } catch (err) { toast(errText(err), 'error'); }
+  }));
   main.querySelector('#export')?.addEventListener('click', () => exportExcel(secret));
   main.querySelector('#report')?.addEventListener('click', () => openReport(secret));
   main.querySelector('#reset')?.addEventListener('click', () => doReset(false));
@@ -332,6 +339,13 @@ function currentQuestionCard(s) {
   </div>`;
 }
 
+function musicButtons() {
+  return `<div class="grid2 music-btns">
+    <button class="btn btn-ghost" data-music="music_stop">🔉 Dừng nhạc (nhỏ dần)</button>
+    <button class="btn btn-ghost" data-music="music_play">🎵 Phát lại nhạc</button>
+  </div>`;
+}
+
 function controlTab() {
   const s = game.state;
   if (!s || !overview) return `<div class="p-wait"><div class="spinner"></div></div>`;
@@ -439,6 +453,7 @@ function controlTab() {
     default: break;
   }
 
+  if (['final_congrats', 'award_individual', 'award_teams', 'award_summary'].includes(s.phase)) extra += musicButtons();
   const rerun = ['question', 'options', 'result'].includes(s.phase)
     ? `<button class="btn btn-ghost btn-block" data-act="start_question" data-arg="${s.q_no}" data-confirm="Chạy lại <b>câu ${s.q_no}</b> từ đầu?<br><small>Toàn bộ câu trả lời của câu này sẽ bị xoá.</small>">↻ Chạy lại câu này</button>`
     : '';
@@ -493,6 +508,7 @@ function questionsTab() {
 function moreTab() {
   const parts = overview?.parts || [];
   return `
+    <div class="card"><div class="h-part-title">Nhạc trao giải (trên màn chiếu)</div>${musicButtons()}</div>
     <div class="card"><div class="h-part-title">Kết quả</div>
       <button class="btn btn-gold btn-block" id="report">📄 Xuất biên bản tổng hợp</button>
       <button class="btn btn-primary btn-block" id="export">⬇ Xuất Excel kết quả</button>

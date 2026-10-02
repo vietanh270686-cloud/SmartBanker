@@ -113,6 +113,22 @@ export function notifyVersion(v) {
   if (!game.state || v > game.state.version) fetchState();
 }
 
+// ---------------- Lệnh điều khiển MC -> màn chiếu (vd dừng nhạc) ----------------
+let controlCh = null;
+export function controlChannel(onMessage) {
+  if (!controlCh) {
+    controlCh = supabase.channel('sb-control', { config: { broadcast: { self: false, ack: true } } });
+    if (onMessage) controlCh.on('broadcast', { event: 'control' }, ({ payload }) => onMessage(payload));
+    controlCh.subscribe();
+  }
+  return controlCh;
+}
+export async function sendControl(action) {
+  const ch = controlChannel();
+  const res = await ch.send({ type: 'broadcast', event: 'control', payload: { action, at: Date.now() } });
+  if (res !== 'ok') throw new Error('Chưa gửi được lệnh tới màn chiếu (' + res + ')');
+}
+
 // ---------------- Phần thi (tên + chủ đề) ----------------
 export const parts = {};
 export async function loadParts() {

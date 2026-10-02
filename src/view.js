@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import {
   rpc, errText, esc, fmtSec, fmtScore, LETTERS, TEAM_CLASS, logoHtml, BASE_URL, toast,
   game, onState, startStateSync, optionsTiming, top10Auto, serverNow, loadParts, partTopic,
-  perfTiming, fmtClock, fmtOver, isRevealed, isDrawing,
+  perfTiming, fmtClock, fmtOver, isRevealed, isDrawing, controlChannel,
 } from './lib.js';
 import * as snd from './sound.js';
 import { exportExcel } from './export.js';
@@ -89,7 +89,7 @@ function showStartOverlay() {
     </div>`;
   root.querySelector('#go').addEventListener('click', () => {
     snd.unlockAudio();
-    snd.preloadMusic(['award']);
+    snd.preloadMusic(['award', 'award2']);
     document.documentElement.requestFullscreen?.().catch(() => {});
     start();
   });
@@ -122,6 +122,7 @@ async function start() {
   root.querySelector('#report').addEventListener('click', () => openReport(secret));
 
   await loadParts();
+  controlChannel(onControl);
   startStateSync({ pollMs: 3000 });
   onState(() => render());
   pollOnline();
@@ -231,7 +232,7 @@ function onPhaseEnter(s) {
     case 'part_intro': case 'part_end': snd.playStinger(); break;
     case 'final_teams': case 'final_top10': snd.playStinger(); break;
     case 'final_board': snd.playFanfare(); break;
-    case 'final_congrats': case 'award_summary': snd.playMusic('award', { loop: true, fallback: snd.playFanfare }); break;
+    case 'final_congrats': case 'award_summary': playAward(s.phase, true); break;
     case 'intro_draw': case 'speech_draw': case 'intro_perf': case 'speech_perf':
     case 'award_teams': case 'award_individual': snd.playStinger(); break;
     default: break;
@@ -503,6 +504,19 @@ function congrats(p) {
     </div>`;
 }
 
+// ================= Nhạc trao giải =================
+// Bài 1 (award.mp3): giải cá nhân + chúc mừng Top 3 · Bài 2 (award2.mp3): giải đồng đội + chung cuộc.
+// Chưa có bài 2 thì dùng bài 1; chưa có file nào thì dùng kèn tổng hợp.
+function playAward(phase, loop) {
+  const track = (phase === 'award_teams' || phase === 'award_summary') && snd.musicReady('award2') ? 'award2' : 'award';
+  snd.playMusic(track, { loop, fallback: snd.playFanfare });
+}
+
+function onControl(msg) {
+  if (msg?.action === 'music_stop') snd.stopMusic(3000);
+  if (msg?.action === 'music_play') playAward(game.state?.phase, true);
+}
+
 // ================= PHẦN 1 (Giới thiệu) & PHẦN 3 (Hùng biện) =================
 const STAGE_TITLE = { intro: 'PHẦN 1 · GIỚI THIỆU ĐỘI THI', speech: 'PHẦN 3 · HÙNG BIỆN' };
 
@@ -663,7 +677,7 @@ function tick() {
   if (suspense && Date.now() >= suspense.until && suspense.fanfare) {
     suspense.fanfare = false;
     // trao giải: phát nhạc trao giải sau mỗi lần công bố (không có file nhạc thì dùng kèn tổng hợp)
-    if (suspense.phase?.startsWith('award')) snd.playMusic('award', { fallback: snd.playFanfare });
+    if (suspense.phase?.startsWith('award')) playAward(suspense.phase, false);
     else snd.playFanfare();
   }
 

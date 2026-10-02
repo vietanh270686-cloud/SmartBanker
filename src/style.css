@@ -542,3 +542,5 @@ body.mode-view {
 .sec-avg b { font-size: 18px; color: var(--teal); }
 .sec-missing { font-size: 12px; font-weight: 700; color: var(--bad); margin-top: 4px; }
 .sec-missing:empty { display: none; }
+.music-btns { margin-top: 10px; }
+.music-btns .btn { font-size: 14px; }
