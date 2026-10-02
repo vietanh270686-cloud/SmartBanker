@@ -6,6 +6,7 @@ import {
 } from './lib.js';
 import * as snd from './sound.js';
 import { exportExcel } from './export.js';
+import { openReport } from './report.js';
 
 const KEY = 'sb_view_secret';
 const SUSPENSE_MS = 1900;
@@ -104,6 +105,7 @@ async function start() {
           <button class="icon-btn" id="mute" title="Tắt/bật âm thanh">🔊</button>
           <button class="icon-btn" id="fs" title="Toàn màn hình">⛶</button>
           <button class="icon-btn" id="xls" title="Xuất Excel">⬇</button>
+          <button class="icon-btn" id="report" title="Xuất biên bản tổng hợp">📄</button>
         </div>
       </header>
       <main class="v-stage" id="stage"></main>
@@ -116,6 +118,7 @@ async function start() {
     if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.();
   });
   root.querySelector('#xls').addEventListener('click', () => exportExcel(secret));
+  root.querySelector('#report').addEventListener('click', () => openReport(secret));
 
   await loadParts();
   startStateSync({ pollMs: 3000 });

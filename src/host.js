@@ -4,6 +4,7 @@ import {
   perfTiming, fmtClock, fmtOver, isRevealed, isDrawing, serverNow,
 } from './lib.js';
 import { exportExcel } from './export.js';
+import { openReport } from './report.js';
 
 const KEY = 'sb_host_secret';
 let root;
@@ -214,6 +215,7 @@ function wire(main) {
     } catch (err) { toast(errText(err), 'error'); }
   }));
   main.querySelector('#export')?.addEventListener('click', () => exportExcel(secret));
+  main.querySelector('#report')?.addEventListener('click', () => openReport(secret));
   main.querySelector('#reset')?.addEventListener('click', () => doReset(false));
   main.querySelector('#reset-all')?.addEventListener('click', () => doReset(true));
   main.querySelector('#logout')?.addEventListener('click', async () => {
@@ -492,6 +494,7 @@ function moreTab() {
   const parts = overview?.parts || [];
   return `
     <div class="card"><div class="h-part-title">Kết quả</div>
+      <button class="btn btn-gold btn-block" id="report">📄 Xuất biên bản tổng hợp</button>
       <button class="btn btn-primary btn-block" id="export">⬇ Xuất Excel kết quả</button>
     </div>
     <div class="card"><div class="h-part-title">Chuyển màn hình</div>
