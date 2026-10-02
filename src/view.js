@@ -325,9 +325,16 @@ function qBadge(s, p) {
   return `<div class="q-badge"><span>Vòng ${s.part_no} · ${esc(p.part_name)}</span><b>Câu ${p.idx}/${p.q_count}</b></div>`;
 }
 
+// Đáp án / câu hỏi dài -> thu nhỏ chữ để vừa màn hình LED
+function lenClass(p) {
+  const opt = p.options ? Math.max(...LETTERS.map((L) => String(p.options[L] || '').length)) : 0;
+  const q = String(p.text || '').length;
+  return [opt > 150 ? 'opts-xlong' : opt > 95 ? 'opts-long' : '', q > 150 ? 'q-long' : ''].join(' ');
+}
+
 function questionView(s, p, withOptions) {
   return `
-    <div class="v-question ${withOptions ? 'has-opts' : ''}">
+    <div class="v-question ${withOptions ? 'has-opts' : ''} ${lenClass(p)}">
       ${qBadge(s, p)}
       <div class="q-text">${esc(p.text)}</div>
       ${withOptions ? `
@@ -350,7 +357,7 @@ function resultView(s, p) {
   const maxAvg = Math.max(1, ...r.teams.map((t) => Number(t.avg)));
   const totals = Object.fromEntries((r.totals || []).map((t) => [t.id, t.total]));
   return `
-    <div class="v-result">
+    <div class="v-result ${lenClass(p)}">
       ${qBadge(s, p)}
       <div class="q-text sm">${esc(p.text)}</div>
       <div class="res-grid">

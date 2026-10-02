@@ -544,3 +544,12 @@ body.mode-view {
 .sec-missing:empty { display: none; }
 .music-btns { margin-top: 10px; }
 .music-btns .btn { font-size: 14px; }
+
+/* Đáp án / câu hỏi dài */
+.v-question.q-long.has-opts .q-text { font-size: 2.1vw; min-height: 14vh; }
+.v-question.opts-long .v-opt { font-size: 1.75vw; min-height: 15vh; padding: 1.8vh 1.2vw; }
+.v-question.opts-xlong .v-opt { font-size: 1.6vw; min-height: 15vh; padding: 1.6vh 1.1vw; line-height: 1.28; }
+.v-question.opts-xlong .v-opt .opt-letter, .v-question.opts-long .v-opt .opt-letter { width: 3.2vw; height: 3.2vw; font-size: 1.8vw; }
+.v-result.opts-long .res-opt { font-size: 1.45vw; padding: 1.3vh 1vw; }
+.v-result.opts-xlong .res-opt { font-size: 1.32vw; padding: 1.2vh 1vw; line-height: 1.25; }
+.v-result.q-long .q-text.sm { font-size: 1.6vw; }
